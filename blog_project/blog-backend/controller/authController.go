@@ -2,13 +2,10 @@ package controller
 
 import (
 	"fmt"
-	"github.com/bloomingFlower/blog-backend/util"
-	"github.com/dgrijalva/jwt-go"
 	"log"
 	"net/http"
 	"regexp"
 	"strings"
-	"time"
 
 	"github.com/bloomingFlower/blog-backend/database"
 	"github.com/bloomingFlower/blog-backend/models"
@@ -67,48 +64,6 @@ func Register(c *fiber.Ctx) error {
 		"user":    user,
 		"message": "User created successfully",
 	})
-}
 
-func Login(c *fiber.Ctx) error {
-	var data map[string]string
-	if err := c.BodyParser(&data); err != nil {
-		fmt.Println("unable to parse body")
-	}
-	var user models.User
-	database.DB.Where("email = ?", data["email"]).First(&user)
-	if user.ID == 0 {
-		c.Status(http.StatusNotFound)
-		return c.JSON(fiber.Map{
-			"message": "User not found",
-		})
-	}
-	if err := user.ComparePassword(data["password"]); err != nil {
-		c.Status(http.StatusBadRequest)
-		return c.JSON(fiber.Map{
-			"message": "Incorrect password",
-		})
-	}
-	token, err := util.GenerateJwt(fmt.Sprintf("%d", user.ID))
-	if err != nil {
-		c.Status(http.StatusInternalServerError)
-		return c.JSON(fiber.Map{
-			"message": "Unable to login",
-		})
-	}
-	cookie := fiber.Cookie{
-		Name:     "jwt",
-		Value:    token,
-		Expires:  time.Now().Add(time.Hour * 24),
-		HTTPOnly: true,
-	}
-	c.Cookie(&cookie)
-	c.Status(http.StatusOK)
-	return c.JSON(fiber.Map{
-		"message": "Successfully login",
-		"user":    user,
-	})
-}
-
-type Claims struct {
-	jwt.StandardClaims
+	//return c.SendString("Hello, World 👋!")
 }
