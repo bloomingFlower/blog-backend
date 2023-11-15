@@ -1,16 +1,18 @@
 package util
 
 import (
+	"strconv"
+	"time"
+
 	jwt "github.com/dgrijalva/jwt-go"
 	"golang.org/x/crypto/bcrypt"
-	"time"
 )
 
 const SecretKey = "secret"
 
-func GenerateJwt(issuer string) (string, error) {
+func GenerateJwt(userId uint) (string, error) {
 	claims := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.StandardClaims{
-		Issuer:    issuer,
+		Audience:  strconv.Itoa(int(userId)),
 		ExpiresAt: time.Now().Add(time.Hour * 24).Unix(),
 	})
 	return claims.SignedString([]byte(SecretKey))
@@ -18,14 +20,17 @@ func GenerateJwt(issuer string) (string, error) {
 }
 
 func ParseJwt(cookie string) (string, error) {
+	// JWT 토큰 파싱
 	token, err := jwt.ParseWithClaims(cookie, &jwt.StandardClaims{}, func(t *jwt.Token) (interface{}, error) {
 		return []byte(SecretKey), nil
 	})
-	if err != nil || token.Valid {
+	// 에러 처리
+	if err != nil || !token.Valid {
 		return "", err
 	}
+	// ID 반환
 	claims := token.Claims.(*jwt.StandardClaims)
-	return claims.Issuer, nil
+	return claims.Audience, nil
 }
 
 func HashPassword(password string) (string, error) {
