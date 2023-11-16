@@ -2,6 +2,7 @@ package controller
 
 import (
 	"github.com/gofiber/fiber/v2"
+	"log"
 	"math/rand"
 )
 
@@ -28,6 +29,7 @@ func UploadImage(c *fiber.Ctx) error {
 			return err
 		}
 	}
+	log.Println(filename)
 	return c.JSON(fiber.Map{
 		"url": "http://localhost:3000/api/uploads/img/" + filename,
 	})
