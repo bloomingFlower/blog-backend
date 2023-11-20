@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/gofiber/fiber/v2/middleware/cors"
 	"log"
 	"os"
 
@@ -18,6 +19,16 @@ func main() {
 	}
 	port := os.Getenv("PORT")
 	app := fiber.New()
+	app.Use(cors.New())
+
+	// 예시 API 라우트
+	app.Get("/api/data", func(c *fiber.Ctx) error {
+		return c.SendString("Hello from Go Fiber!")
+	})
+
 	routes.Setup(app)
-	app.Listen(":" + port)
+	err = app.Listen(":" + port)
+	if err != nil {
+		return
+	}
 }
