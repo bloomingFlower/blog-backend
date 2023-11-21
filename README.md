@@ -1,4 +1,4 @@
-# 쿠버네티스 구성 초기화
+## 쿠버네티스 구성 초기화
 1. kubeadm reset
 2. sudo apt-get purge kubeadm kubectl kubelet
 3. sudo rm -r /etc/kubernetes/
