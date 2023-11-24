@@ -44,3 +44,6 @@ root@instance-1:~# sudo iptables -A INPUT -p tcp --dport 8472 -j ACCEPT
 root@instance-1:~# sudo iptables -A INPUT -p tcp --dport 30000:32767 -j ACCEPT
 root@devops-worker-1:~# sudo iptables -A INPUT -p udp --dport 8285 -j ACCEPT
 root@devops-worker-1:~# sudo iptables -A INPUT -p udp --dport 8472 -j ACCEPT
+
+kubectl create namespace argocd kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+kubectl get svc -n argocd
