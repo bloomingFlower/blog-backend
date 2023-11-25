@@ -47,3 +47,8 @@ root@devops-worker-1:~# sudo iptables -A INPUT -p udp --dport 8472 -j ACCEPT
 
 kubectl create namespace argocd kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 kubectl get svc -n argocd
+
+containerd config default | tee /etc/containerd/config.toml
+sed -i 's/SystemdCgroup = false/SystemdCgroup = true/g' /etc/containerd/config.toml  
+service containerd restart
+service kubelet restart
