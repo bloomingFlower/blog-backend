@@ -104,3 +104,40 @@ func DeletePost(c *fiber.Ctx) error {
 		"message": "Post deleted successfully",
 	})
 }
+
+//func CreatePost(c *fiber.Ctx) error {
+//	// 파일 파싱
+//	file, err := c.FormFile("image")
+//	if err != nil {
+//		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+//			"message": "Error parsing file",
+//		})
+//	}
+//
+//	// 파일 저장
+//	filePath := "./uploads/" + file.Filename
+//	err = c.SaveFile(file, filePath)
+//	if err != nil {
+//		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+//			"message": "Could not save file",
+//		})
+//	}
+//
+//	// 제목, Quill의 내용, 해시태그 파싱
+//	title := c.FormValue("title")
+//	content := c.FormValue("content")
+//	tags := c.FormValue("tags") // 해시태그는 쉼표로 구분된 문자열로 가정
+//
+//	// 데이터베이스에 저장
+//	blogpost := models.Post{
+//		Title: title,
+//		Content: content,
+//		Image: filePath,
+//		Tags: tags,
+//	}
+//	if err := database.DB.Create(&blogpost).Error; err != nil {
+//		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+//			"message": "Unable to create post",
+//		})
+//	}
+//}

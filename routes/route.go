@@ -8,6 +8,7 @@ import (
 
 func Setup(app *fiber.App) {
 	app.Post("/api/register", controller.Register)
+	app.Delete("/api/users/delete", controller.DeleteUser)
 	app.Post("/api/login", controller.Login)
 
 	app.Use("/api", middleware.IsAuthenticate)

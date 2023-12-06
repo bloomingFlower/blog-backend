@@ -110,6 +110,36 @@ func Login(c *fiber.Ctx) error {
 	})
 }
 
+func DeleteUser(c *fiber.Ctx) error {
+	// Get the JWT token from the request cookies
+	cookie := c.Cookies("jwt")
+
+	// Parse the JWT token to get the user ID
+	id, err := util.ParseJwt(cookie)
+	if err != nil {
+		c.Status(http.StatusUnauthorized)
+		return c.JSON(fiber.Map{
+			"message": "Unauthorized",
+		})
+	}
+
+	// Find and delete the user with the given ID
+	var user models.User
+	database.DB.Where("id = ?", id).First(&user)
+	if user.ID == 0 {
+		c.Status(http.StatusNotFound)
+		return c.JSON(fiber.Map{
+			"message": "User not found",
+		})
+	}
+	database.DB.Delete(&user)
+
+	c.Status(http.StatusOK)
+	return c.JSON(fiber.Map{
+		"message": "User deleted successfully",
+	})
+}
+
 type Claims struct {
 	jwt.StandardClaims
 }
