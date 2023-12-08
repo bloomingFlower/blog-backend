@@ -2,3 +2,5 @@ vendor
 .env
 blog-backend
 .idea
+.node_modules
+```

@@ -19,7 +19,12 @@ func main() {
 	}
 	port := os.Getenv("PORT")
 	app := fiber.New()
-	app.Use(cors.New())
+	app.Use(cors.New(cors.Config{
+		AllowCredentials: true,
+		AllowOrigins:     "http://localhost:8080",
+		AllowMethods:     "POST, GET, OPTIONS, PUT, DELETE",
+		AllowHeaders:     "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization",
+	}))
 
 	// 예시 API 라우트
 	app.Get("/api/data", func(c *fiber.Ctx) error {

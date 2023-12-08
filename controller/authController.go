@@ -96,6 +96,7 @@ func Login(c *fiber.Ctx) error {
 			"message": "Unable to login",
 		})
 	}
+
 	cookie := fiber.Cookie{
 		Name:     "jwt",
 		Value:    token,
