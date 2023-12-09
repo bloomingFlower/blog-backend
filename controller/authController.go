@@ -98,10 +98,10 @@ func Login(c *fiber.Ctx) error {
 	}
 
 	cookie := fiber.Cookie{
-		Name:     "jwt",
-		Value:    token,
-		Expires:  time.Now().Add(time.Hour * 24),
-		HTTPOnly: true,
+		Name:    "jwt",
+		Value:   token,
+		Expires: time.Now().Add(time.Hour * 24),
+		//HTTPOnly: true,
 	}
 	c.Cookie(&cookie)
 	c.Status(http.StatusOK)
@@ -112,15 +112,26 @@ func Login(c *fiber.Ctx) error {
 }
 
 func DeleteUser(c *fiber.Ctx) error {
-	// Get the JWT token from the request cookies
-	cookie := c.Cookies("jwt")
+	// Get the JWT token from the Authorization header
+	header := c.Get("Authorization")
+
+	// The header should be in the format `Bearer <token>`
+	if !strings.HasPrefix(header, "Bearer ") {
+		c.Status(http.StatusUnauthorized)
+		return c.JSON(fiber.Map{
+			"message": "Missing or malformed JWT",
+		})
+	}
+
+	// Extract the actual token
+	token := strings.TrimPrefix(header, "Bearer ")
 
 	// Parse the JWT token to get the user ID
-	id, err := util.ParseJwt(cookie)
+	id, err := util.ParseJwt(token)
 	if err != nil {
 		c.Status(http.StatusUnauthorized)
 		return c.JSON(fiber.Map{
-			"message": "Unauthorized",
+			"message": "Invalid or expired JWT",
 		})
 	}
 
