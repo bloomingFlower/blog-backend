@@ -13,13 +13,13 @@ func Setup(app *fiber.App) {
 	app.Post("/api/login", controller.Login)
 
 	app.Use("/api", middleware.IsAuthenticate)
-	app.Post("/api/create-post", controller.CreatePost)
-	app.Get("/api/all-post", controller.AllPost)
+	app.Post("/api/posts", middleware.IsAuthenticate, controller.CreatePost)
+	app.Get("/api/posts", controller.AllPost)
 	app.Get("/api/post/:id", controller.DetailPost)
-	app.Put("/api/update-post/:id", controller.UpdatePost)
+	app.Put("/api/post/:id", middleware.IsAuthenticate, controller.UpdatePost)
 	app.Get("/api/unique-post", controller.UniquePost)
 	app.Delete("/api/delete-post/:id", controller.DeletePost)
 
-	app.Post("/api/upload-img", controller.UploadImage)
+	app.Post("/api/upload-file", controller.UploadFile)
 	app.Static("/api/uploads", "./uploads")
 }

@@ -154,7 +154,6 @@ func UpdateUser(c *fiber.Ctx) error {
 			"message": "User not found",
 		})
 	}
-
 	// Update the user's information
 	if data["first_name"] != nil {
 		user.FirstName = data["first_name"].(string)

@@ -1,12 +1,15 @@
 package controller
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"gorm.io/gorm"
 	"log"
 	"math"
+	"os"
 	"strconv"
+	"strings"
 
 	"github.com/bloomingFlower/blog-backend/database"
 	"github.com/bloomingFlower/blog-backend/models"
@@ -15,16 +18,75 @@ import (
 )
 
 func CreatePost(c *fiber.Ctx) error {
-	var blogpost models.Post
-	if err := c.BodyParser(&blogpost); err != nil {
-		fmt.Println("Error parsing body")
+	// 제목, Quill의 내용, 해시태그 파싱
+	userIDStr, ok := c.Locals("userID").(string)
+	if !ok {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"message": "Invalid user ID",
+		})
+	}
+
+	userID64, err := strconv.ParseUint(userIDStr, 10, 64)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"message": "Invalid user ID",
+		})
+	}
+
+	userID := uint(userID64)
+	title := c.FormValue("title")
+	content := c.FormValue("content")
+	tagsJSON := c.FormValue("tags") // 해시태그는 JSON 형식의 문자열로 가정
+	log.Println("c.FormValue(content): ", c.FormValue("content"))
+	log.Println("c.FormValue(tags): ", c.FormValue("tags"))
+	log.Println("c.Locals(userID): ", c.Locals("userID"))
+	log.Println("c.FormValue(title): ", c.FormValue("title"))
+	// JSON 형식의 해시태그를 Go 슬라이스로 변환
+	var tags []string
+	err = json.Unmarshal([]byte(tagsJSON), &tags)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"message": "Error parsing tags",
+		})
+	}
+
+	// 데이터베이스에 저장
+	blogpost := models.Post{
+		UserID:  userID,
+		Title:   title,
+		Content: content,
+		Tags:    strings.Join(tags, ","),
 	}
 	if err := database.DB.Create(&blogpost).Error; err != nil {
-		c.Status(fiber.StatusBadRequest)
-		return c.JSON(fiber.Map{
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"message": "Unable to create post",
 		})
 	}
+
+	// 포스트 ID를 기준으로 디렉토리 생성
+	dirPath := fmt.Sprintf("./uploads/%d/", blogpost.ID)
+	_, err = os.Stat(dirPath)
+	if os.IsNotExist(err) {
+		errDir := os.MkdirAll(dirPath, 0755)
+		if errDir != nil {
+			log.Fatal(err)
+		}
+	}
+
+	// 파일이 있을 경우, 파일 저장
+	filePath := ""
+	if _, err := c.FormFile("image"); err == nil {
+		filePath, err = SaveFile(c, dirPath)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"message": "Could not save file",
+			})
+		}
+		blogpost.Image = filePath
+		log.Println("filePath: ", filePath)
+		database.DB.Save(&blogpost)
+	}
+
 	return c.JSON(fiber.Map{
 		"message": "Post created successfully",
 	})
@@ -83,7 +145,6 @@ func UniquePost(c *fiber.Ctx) error {
 			"message": "Unauthorized",
 		})
 	}
-	log.Println(cookie)
 	var posts []models.Post
 	database.DB.Model(&posts).Where("user_id=?", id).Preload("User").Find(&posts)
 	database.DB.Debug().Model(&models.Post{}).Where("user_id=?", id).Preload("User").Find(&posts)
@@ -104,40 +165,3 @@ func DeletePost(c *fiber.Ctx) error {
 		"message": "Post deleted successfully",
 	})
 }
-
-//func CreatePost(c *fiber.Ctx) error {
-//	// 파일 파싱
-//	file, err := c.FormFile("image")
-//	if err != nil {
-//		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-//			"message": "Error parsing file",
-//		})
-//	}
-//
-//	// 파일 저장
-//	filePath := "./uploads/" + file.Filename
-//	err = c.SaveFile(file, filePath)
-//	if err != nil {
-//		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-//			"message": "Could not save file",
-//		})
-//	}
-//
-//	// 제목, Quill의 내용, 해시태그 파싱
-//	title := c.FormValue("title")
-//	content := c.FormValue("content")
-//	tags := c.FormValue("tags") // 해시태그는 쉼표로 구분된 문자열로 가정
-//
-//	// 데이터베이스에 저장
-//	blogpost := models.Post{
-//		Title: title,
-//		Content: content,
-//		Image: filePath,
-//		Tags: tags,
-//	}
-//	if err := database.DB.Create(&blogpost).Error; err != nil {
-//		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-//			"message": "Unable to create post",
-//		})
-//	}
-//}

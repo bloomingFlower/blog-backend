@@ -30,7 +30,6 @@ func ParseJwt(cookie string) (string, error) {
 	}
 	// ID 반환
 	claims := token.Claims.(*jwt.StandardClaims)
-	println(claims.Audience)
 	return claims.Audience, nil
 }
 

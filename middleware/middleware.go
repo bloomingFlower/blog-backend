@@ -25,6 +25,7 @@ func IsAuthenticate(c *fiber.Ctx) error {
 			"message": "User not found",
 		})
 	}
+	c.Locals("userID", id) // Set the user ID in locals
 
 	return c.Next()
 }

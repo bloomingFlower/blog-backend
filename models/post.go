@@ -5,6 +5,7 @@ type Post struct {
 	Title   string `json:"title"`
 	Content string `json:"content"`
 	Image   string `json:"image"`
+	Tags    string `json:"tags"`
 	UserID  uint   `json:"user_id"`
 	User    User   `json:"user" gorm:"foreignKey:UserID"`
 }
