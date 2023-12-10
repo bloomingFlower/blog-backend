@@ -8,7 +8,8 @@ import (
 
 func Setup(app *fiber.App) {
 	app.Post("/api/register", controller.Register)
-	app.Delete("/api/users/delete", controller.DeleteUser)
+	app.Delete("/api/user", middleware.IsAuthenticate, controller.DeleteUser)
+	app.Put("/api/user", middleware.IsAuthenticate, controller.UpdateUser)
 	app.Post("/api/login", controller.Login)
 
 	app.Use("/api", middleware.IsAuthenticate)
@@ -18,6 +19,7 @@ func Setup(app *fiber.App) {
 	app.Put("/api/update-post/:id", controller.UpdatePost)
 	app.Get("/api/unique-post", controller.UniquePost)
 	app.Delete("/api/delete-post/:id", controller.DeletePost)
+
 	app.Post("/api/upload-img", controller.UploadImage)
 	app.Static("/api/uploads", "./uploads")
 }

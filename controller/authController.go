@@ -112,22 +112,9 @@ func Login(c *fiber.Ctx) error {
 }
 
 func DeleteUser(c *fiber.Ctx) error {
-	// Get the JWT token from the Authorization header
-	header := c.Get("Authorization")
-
-	// The header should be in the format `Bearer <token>`
-	if !strings.HasPrefix(header, "Bearer ") {
-		c.Status(http.StatusUnauthorized)
-		return c.JSON(fiber.Map{
-			"message": "Missing or malformed JWT",
-		})
-	}
-
-	// Extract the actual token
-	token := strings.TrimPrefix(header, "Bearer ")
-
 	// Parse the JWT token to get the user ID
-	id, err := util.ParseJwt(token)
+	cookie := c.Cookies("jwt")
+	id, err := util.ParseJwt(cookie)
 	if err != nil {
 		c.Status(http.StatusUnauthorized)
 		return c.JSON(fiber.Map{
@@ -149,6 +136,52 @@ func DeleteUser(c *fiber.Ctx) error {
 	c.Status(http.StatusOK)
 	return c.JSON(fiber.Map{
 		"message": "User deleted successfully",
+	})
+}
+
+func UpdateUser(c *fiber.Ctx) error {
+	// Parse the user ID and new data from the request body
+	var data map[string]interface{}
+	if err := c.BodyParser(&data); err != nil {
+		fmt.Println("unable to parse body")
+	}
+	// Find and delete the user with the given ID
+	var user models.User
+	database.DB.Where("email = ?", data["email"]).First(&user)
+	if user.ID == 0 {
+		c.Status(http.StatusNotFound)
+		return c.JSON(fiber.Map{
+			"message": "User not found",
+		})
+	}
+
+	// Update the user's information
+	if data["first_name"] != nil {
+		user.FirstName = data["first_name"].(string)
+	}
+	if data["last_name"] != nil {
+		user.LastName = data["last_name"].(string)
+	}
+	if data["email"] != nil {
+		user.Email = strings.TrimSpace(data["email"].(string))
+	}
+	if data["phone"] != nil {
+		user.Phone = data["phone"].(string)
+	}
+	if data["password"] != nil {
+		user.SetPassword(data["password"].(string))
+	}
+
+	// Save the updated user information
+	result := database.DB.Save(&user)
+	if result.Error != nil {
+		log.Println(result.Error)
+	}
+
+	c.Status(http.StatusOK)
+	return c.JSON(fiber.Map{
+		"user":    user,
+		"message": "User updated successfully",
 	})
 }
 

@@ -8,7 +8,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-const SecretKey = "secret"
+const SecretKey = "secret blog jwt key"
 
 func GenerateJwt(userId uint) (string, error) {
 	claims := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.StandardClaims{
@@ -30,6 +30,7 @@ func ParseJwt(cookie string) (string, error) {
 	}
 	// ID 반환
 	claims := token.Claims.(*jwt.StandardClaims)
+	println(claims.Audience)
 	return claims.Audience, nil
 }
 
