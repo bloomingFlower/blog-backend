@@ -78,6 +78,6 @@ func UploadFile(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(fiber.Map{
-		"url": "http://localhost:3000/api/uploads/" + postID + "/" + filepath.Base(filePath),
+		"url": c.BaseURL() + "/api/uploads/" + postID + "/" + filepath.Base(filePath),
 	})
 }

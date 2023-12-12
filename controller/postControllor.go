@@ -75,16 +75,20 @@ func CreatePost(c *fiber.Ctx) error {
 
 	// 파일이 있을 경우, 파일 저장
 	filePath := ""
-	if _, err := c.FormFile("image"); err == nil {
+	if _, err := c.FormFile("file"); err == nil {
 		filePath, err = SaveFile(c, dirPath)
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 				"message": "Could not save file",
 			})
 		}
-		blogpost.Image = filePath
+		blogpost.File = filePath
 		log.Println("filePath: ", filePath)
-		database.DB.Save(&blogpost)
+		if err = database.DB.Save(&blogpost).Error; err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"message": "Unable to save file path",
+			})
+		}
 	}
 
 	return c.JSON(fiber.Map{
