@@ -20,6 +20,7 @@ func Setup(app *fiber.App) {
 	app.Get("/api/unique-post", controller.UniquePost)
 	app.Delete("/api/delete-post/:id", controller.DeletePost)
 
-	app.Post("/api/upload-file", controller.UploadFile)
+	app.Post("/api/upload-file", middleware.IsAuthenticate, controller.UploadFile)
+	app.Post("/api/upload-img", middleware.IsAuthenticate, controller.UploadImage)
 	app.Static("/api/uploads", "./uploads")
 }
