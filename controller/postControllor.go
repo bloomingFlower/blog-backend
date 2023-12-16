@@ -301,6 +301,7 @@ func DeletePost(c *fiber.Ctx) error {
 	})
 }
 
+// TODO : ElasticSearch 적용
 func SearchPost(c *fiber.Ctx) error {
 	// Get the search query, type, and pagination parameters from the request
 	query := c.Query("query", "")

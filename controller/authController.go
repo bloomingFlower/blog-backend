@@ -16,11 +16,14 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
+// TODO: email domain 체크
 func validateEmail(email string) bool {
 	re := regexp.MustCompile(`^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,4}$`)
 	return re.MatchString(email)
 }
 
+// TODO: google, github, kakao, naver 로그인
+// web3 AA 로그인
 func Register(c *fiber.Ctx) error {
 	var data map[string]interface{}
 	var userData models.User
