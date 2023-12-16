@@ -119,9 +119,26 @@ func AllPost(c *fiber.Ctx) error {
 }
 
 func DetailPost(c *fiber.Ctx) error {
-	id, _ := strconv.Atoi(c.Params("id"))
+	// Extract the post ID from the request
+	postID := c.Params("id")
+
+	// Check if postID is a valid integer
+	if _, err := strconv.Atoi(postID); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"message": "postID must be a valid integer",
+		})
+	}
+
+	// Find the post with the given ID
 	var post models.Post
-	database.DB.Preload("User").Where("id = ?", id).First(&post)
+	result := database.DB.Preload("User").Where("id = ?", postID).First(&post)
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"message": "Post not found",
+		})
+	}
+
+	// Return the post details
 	return c.JSON(fiber.Map{
 		"data": post,
 	})
