@@ -7,13 +7,17 @@ import (
 )
 
 func Setup(app *fiber.App) {
+	app.Post("/api/log", controller.SaveAPILog)
+
 	app.Post("/api/register", controller.Register)
 	app.Delete("/api/user", middleware.IsAuthenticate, controller.DeleteUser)
 	app.Put("/api/user", middleware.IsAuthenticate, controller.UpdateUser)
 	app.Post("/api/login", controller.Login)
-	app.Post("/api/log", controller.SaveAPILog)
 	app.Static("/api/uploads", "./uploads")
 	app.Get("/api/posts", controller.AllPost)
+	app.Get("/api/posts/search", controller.SearchPost)
+	app.Put("/api/post/:id/hide", controller.HidePost)
+
 	app.Get("/api/post/:id", controller.DetailPost)
 
 	app.Use("/api", middleware.IsAuthenticate)
@@ -25,5 +29,4 @@ func Setup(app *fiber.App) {
 
 	app.Post("/api/upload-file", middleware.IsAuthenticate, controller.UploadFile)
 	app.Post("/api/upload-img", middleware.IsAuthenticate, controller.UploadImage)
-
 }

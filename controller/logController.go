@@ -3,24 +3,28 @@ package controller
 import (
 	"github.com/bloomingFlower/blog-backend/database"
 	"github.com/bloomingFlower/blog-backend/models"
+	"github.com/bloomingFlower/blog-backend/util"
 	"github.com/gofiber/fiber/v2"
+	"log"
+	"net/http"
+	"strconv"
 	"time"
 )
 
 func SaveAPILog(c *fiber.Ctx) error {
-	userID, ok := c.Locals("userID").(uint)
-	if !ok {
-		// Handle the error appropriately, for example:
-		userID = 0
-	}
-	// Record the time when the request starts
-	startTime := time.Now()
-
-	// Call the next handler in the stack and wait for it to complete
-	err := c.Next()
+	cookie := c.Cookies("jwt")
+	idStr, err := util.ParseJwt(cookie)
 	if err != nil {
+		idStr = "0"
+	}
+	idInt, err := strconv.Atoi(idStr)
+	if err != nil {
+		log.Println(err.Error())
 		return err
 	}
+	userId := uint(idInt)
+	// Record the time when the request starts
+	startTime := time.Now()
 
 	// Record the time when the request ends
 	endTime := time.Now()
@@ -34,19 +38,23 @@ func SaveAPILog(c *fiber.Ctx) error {
 	statusCode := c.Response().StatusCode()
 
 	// Create a new APILog instance
-	log := models.APILog{
+	logData := models.APILog{
 		RequestMethod:      method,
 		RequestURL:         url,
 		RequestIP:          ip,
 		ResponseStatusCode: statusCode,
 		ResponseTime:       responseTime,
-		UserID:             userID,
+		UserID:             userId,
 	}
 
 	// Save the APILog instance to the database
-	if err := database.DB.Create(&log).Error; err != nil {
+	if err := database.DB.Create(&logData).Error; err != nil {
+		log.Println(err.Error())
 		return err
 	}
 
-	return nil
+	c.Status(http.StatusOK)
+	return c.JSON(fiber.Map{
+		"message": "APILog saved successfully",
+	})
 }
