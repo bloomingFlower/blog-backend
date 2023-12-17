@@ -2,19 +2,29 @@ package controller
 
 import (
 	"fmt"
+	"github.com/bloomingFlower/blog-backend/util"
+	"github.com/dgrijalva/jwt-go"
 	"log"
 	"net/http"
+	"os"
 	"regexp"
 	"strings"
 	"time"
-
-	"github.com/bloomingFlower/blog-backend/util"
-	"github.com/dgrijalva/jwt-go"
 
 	"github.com/bloomingFlower/blog-backend/database"
 	"github.com/bloomingFlower/blog-backend/models"
 	"github.com/gofiber/fiber/v2"
 )
+
+// comment 인증 처리
+type UserClaims struct {
+	ID      string `json:"id"`
+	Name    string `json:"name"`
+	Picture string `json:"picture"`
+	Admin   bool   `json:"admin"`
+	Blocked bool   `json:"blocked"`
+	jwt.StandardClaims
+}
 
 // TODO: email domain 체크
 func validateEmail(email string) bool {
@@ -189,4 +199,31 @@ func UpdateUser(c *fiber.Ctx) error {
 
 type Claims struct {
 	jwt.StandardClaims
+}
+
+func GenerateToken(c *fiber.Ctx) error {
+	log.Println("GenerateToken")
+	claims := &UserClaims{
+		ID:      "user1",
+		Name:    "User One",
+		Picture: "http://example.com/user1.jpg",
+		Admin:   false,
+		Blocked: false,
+		StandardClaims: jwt.StandardClaims{
+			ExpiresAt: time.Now().Add(time.Hour * 1).Unix(),
+		},
+	}
+
+	secretKey := os.Getenv("REMARK42_SECRET_KEY")
+	if secretKey == "" {
+		return c.SendStatus(fiber.StatusInternalServerError)
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	tokenString, err := token.SignedString([]byte(secretKey))
+	if err != nil {
+		return c.SendStatus(fiber.StatusInternalServerError)
+	}
+
+	return c.JSON(fiber.Map{"token": tokenString})
 }
