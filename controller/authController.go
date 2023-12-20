@@ -6,7 +6,6 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	"log"
 	"net/http"
-	"os"
 	"regexp"
 	"strings"
 	"time"
@@ -199,31 +198,4 @@ func UpdateUser(c *fiber.Ctx) error {
 
 type Claims struct {
 	jwt.StandardClaims
-}
-
-func GenerateToken(c *fiber.Ctx) error {
-	log.Println("GenerateToken")
-	claims := &UserClaims{
-		ID:      "user1",
-		Name:    "User One",
-		Picture: "http://example.com/user1.jpg",
-		Admin:   false,
-		Blocked: false,
-		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: time.Now().Add(time.Hour * 1).Unix(),
-		},
-	}
-
-	secretKey := os.Getenv("REMARK42_SECRET_KEY")
-	if secretKey == "" {
-		return c.SendStatus(fiber.StatusInternalServerError)
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	tokenString, err := token.SignedString([]byte(secretKey))
-	if err != nil {
-		return c.SendStatus(fiber.StatusInternalServerError)
-	}
-
-	return c.JSON(fiber.Map{"token": tokenString})
 }

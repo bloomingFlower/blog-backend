@@ -1,5 +1,5 @@
 # Go 애플리케이션 빌드를 위한 베이스 이미지
-FROM golang:latest as builder
+FROM golang:1.21.3 AS builder
 
 # 작업 디렉토리 설정
 WORKDIR /app
@@ -15,10 +15,11 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main .
 
 # 최종 실행 이미지
-FROM alpine:latest
+FROM alpine:3.19.0
 RUN apk --no-cache add ca-certificates
 WORKDIR /root/
 COPY --from=builder /app/main .
+COPY .env /root/.env
 
 # 실행 명령
 CMD ["./main"]

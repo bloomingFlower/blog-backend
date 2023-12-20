@@ -19,7 +19,6 @@ func Setup(app *fiber.App) {
 	app.Put("/api/post/:id/hide", controller.HidePost)
 
 	app.Get("/api/post/:id", controller.DetailPost)
-	app.Get("/api/token", controller.GenerateToken)
 
 	app.Use("/api", middleware.IsAuthenticate)
 	app.Post("/api/posts", middleware.IsAuthenticate, controller.CreatePost)

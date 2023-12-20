@@ -1,6 +1,7 @@
 package util
 
 import (
+	"os"
 	"strconv"
 	"time"
 
@@ -8,7 +9,14 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-const SecretKey = "secret blog jwt key"
+var SecretKey string
+
+func init() {
+	SecretKey = os.Getenv("JWT_SECRET")
+	if SecretKey == "" {
+		SecretKey = "secret"
+	}
+}
 
 func GenerateJwt(userId uint) (string, error) {
 	claims := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.StandardClaims{
