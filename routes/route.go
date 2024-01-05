@@ -13,6 +13,7 @@ func Setup(app *fiber.App) {
 	app.Delete("/api/user", middleware.IsAuthenticate, controller.DeleteUser)
 	app.Put("/api/user", middleware.IsAuthenticate, controller.UpdateUser)
 	app.Post("/api/login", controller.Login)
+
 	app.Static("/api/uploads", "./uploads")
 	app.Get("/api/posts", controller.AllPost)
 	app.Get("/api/posts/search", controller.SearchPost)
@@ -29,4 +30,12 @@ func Setup(app *fiber.App) {
 
 	app.Post("/api/upload-file", middleware.IsAuthenticate, controller.UploadFile)
 	app.Post("/api/upload-img", middleware.IsAuthenticate, controller.UploadImage)
+
+	//social login
+	app.Get("/auth/google/login", controller.GoogleLogin)
+	app.Get("/auth/google/callback", controller.GoogleCallback)
+	app.Get("/auth/github/login", controller.GithubLogin)
+	app.Get("/auth/github/callback", controller.GithubCallback)
+	app.Get("/auth/metamask/login", controller.MetamaskLogin)
+	app.Get("/auth/metamask/callback", controller.MetamaskCallback)
 }

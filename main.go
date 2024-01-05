@@ -26,7 +26,7 @@ func main() {
 		AllowHeaders:     "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization",
 	}))
 
-	// 예시 API 라우트
+	// API 라우트 체크
 	app.Get("/api/data", func(c *fiber.Ctx) error {
 		return c.SendString("Hello from Go Fiber!")
 	})
