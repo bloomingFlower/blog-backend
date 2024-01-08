@@ -12,4 +12,4 @@
 - Frontend - ReactJS
 
 ## TODO
-- [하] Vitess 전환 - https://sungchul-p.github.io/db-on-k8s-vitess-overview
+- [Low] Vitess(DB) - https://sungchul-p.github.io/db-on-k8s-vitess-overview
