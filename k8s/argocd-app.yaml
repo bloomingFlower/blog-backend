@@ -3,9 +3,9 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: blog-backend
-  namespace: argocd
+  namespace: default
 spec:
-  project: default
+  project: blog
   source:
     repoURL: https://github.com/bloomingFlower/blog-backend.git
     targetRevision: HEAD
