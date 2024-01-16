@@ -37,5 +37,5 @@ func Setup(app *fiber.App) {
 	app.Get("/auth/github/login", controller.GithubLogin)
 	app.Get("/auth/github/callback", controller.GithubCallback)
 	app.Get("/auth/metamask/login", controller.MetamaskLogin)
-	app.Get("/auth/metamask/callback", controller.MetamaskCallback)
+	//app.Get("/auth/metamask/callback", controller.MetamaskCallback)
 }
