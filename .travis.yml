@@ -14,5 +14,4 @@ script:
 after_success:
 - export VERSION=$(git rev-parse --short HEAD)
 - rsync -rave "ssh -i ../id_rsa" --exclude=node_modules . $DEPLOY_USER@$DEPLOY_SERVER:~/blog-backend
-- ssh -i ../id_rsa $DEPLOY_USER@$DEPLOY_SERVER "nohup mkdir -p blog-backend && cd blog-backend
-  export VERSION='$VERSION' && docker build --build-arg VERSION=$VERSION -t bloomingflower/blog-backend:$VERSION . && docker tag bloomingflower/blog-backend:$VERSION bloomingflower/blog-backend:latest && docker push bloomingflower/blog-backend && rm -rf dist > /dev/null 2>&1 &
+- ssh -i ../id_rsa $DEPLOY_USER@$DEPLOY_SERVER "nohup mkdir -p blog-backend && cd blog-backend && export VERSION='$VERSION' && docker build --build-arg VERSION=$VERSION -t bloomingflower/blog-backend:$VERSION . && docker tag bloomingflower/blog-backend:$VERSION bloomingflower/blog-backend:latest && docker push bloomingflower/blog-backend && rm -rf dist > /dev/null 2>&1 &"
