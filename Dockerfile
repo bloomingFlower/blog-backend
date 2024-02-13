@@ -22,4 +22,5 @@ COPY --from=builder /app/main .
 COPY .env /root/.env
 
 # 실행 명령
+EXPOSE 8008
 CMD ["./main"]
