@@ -21,7 +21,7 @@ func main() {
 	app := fiber.New()
 	app.Use(cors.New(cors.Config{
 		AllowCredentials: true,
-		AllowOrigins:     "*", //http://localhost:8080, https://blog-backend.default.svc.cluster.local:443, https://blog.yourrubber.duckdns.org",
+		AllowOrigins:     "http://localhost:8080, https://blog.yourrubber.duckdns.org:443",
 		AllowMethods:     "POST, GET, OPTIONS, PUT, DELETE",
 		AllowHeaders:     "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization",
 	}))

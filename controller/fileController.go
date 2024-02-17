@@ -104,8 +104,13 @@ func UploadFile(c *fiber.Ctx) error {
 		return err
 	}
 
+	baseURL := os.Getenv("BASE_URL") // Get the base URL from environment variables
+	if baseURL == "" {
+		baseURL = c.BaseURL() // If not set, use the request's base URL
+	}
+
 	return c.JSON(fiber.Map{
-		"url": c.BaseURL() + "/api/uploads/" + postID + "/" + filepath.Base(filePath),
+		"url": baseURL + "/api/uploads/" + postID + "/" + filepath.Base(filePath),
 	})
 }
 
@@ -135,8 +140,13 @@ func UploadImage(c *fiber.Ctx) error {
 		return err
 	}
 
+	baseURL := os.Getenv("BASE_URL") // Get the base URL from environment variables
+	if baseURL == "" {
+		baseURL = c.BaseURL() // If not set, use the request's base URL
+	}
+
 	return c.JSON(fiber.Map{
-		"url": c.BaseURL() + "/api/uploads/" + postID + "/" + filepath.Base(filePath),
+		"url": baseURL + "/api/uploads/" + postID + "/" + filepath.Base(filePath),
 	})
 }
 
