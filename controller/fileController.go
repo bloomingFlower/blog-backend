@@ -141,7 +141,6 @@ func UploadImage(c *fiber.Ctx) error {
 	}
 
 	baseURL := os.Getenv("BASE_URL") // Get the base URL from environment variables
-	log.Infof("baseURL: %s", baseURL)
 	if baseURL == "" {
 		baseURL = c.BaseURL() // If not set, use the request's base URL
 	}

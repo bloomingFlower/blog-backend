@@ -25,7 +25,8 @@ func main() {
 		AllowMethods:     "POST, GET, OPTIONS, PUT, DELETE",
 		AllowHeaders:     "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization",
 	}))
-
+	baseURL := os.Getenv("BASE_URL") // Get the base URL from environment variables
+	log.Printf("baseURL: %s", baseURL)
 	// API 라우트 체크
 	app.Get("/api/data", func(c *fiber.Ctx) error {
 		return c.SendString("Hello from Go Fiber!")
