@@ -1,6 +1,9 @@
 # Go 애플리케이션 빌드를 위한 베이스 이미지
 FROM golang:1.21.3 AS builder
 
+# Add Maintainer Info
+LABEL maintainer="JYY <yourrubber@duck.com>"
+
 # 작업 디렉토리 설정
 WORKDIR /app
 

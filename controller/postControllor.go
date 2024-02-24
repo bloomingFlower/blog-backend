@@ -36,13 +36,15 @@ func CreatePost(c *fiber.Ctx) error {
 	title := c.FormValue("title")
 	content := c.FormValue("content")
 	tagsJSON := c.FormValue("tags") // 해시태그는 JSON 형식의 문자열로 가정
+	tags := []string{}
 	// JSON 형식의 해시태그를 Go 슬라이스로 변환
-	tags := strings.Split(tagsJSON, ",") // ["fdg", "hgfj", "dsfg", "gfhj"]	err = json.Unmarshal([]byte(tagsJSON), &tags)
-
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"message": "Error parsing tags",
-		})
+	if tagsJSON != "" {
+		tags = strings.Split(tagsJSON, ",") // ["fdg", "hgfj", "dsfg", "gfhj"]	err = json.Unmarshal([]byte(tagsJSON), &tags)
+		if err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"message": "Error parsing tags",
+			})
+		}
 	}
 
 	// 데이터베이스에 저장
@@ -211,13 +213,16 @@ func UpdatePost(c *fiber.Ctx) error {
 	log.Println("c.Locals(userID): ", c.Locals("userID"))
 	log.Println("c.FormValue(title): ", c.FormValue("title"))
 	// JSON 형식의 해시태그를 Go 슬라이스로 변환
-	// Convert the tags slice back to JSON
-	tags := strings.Split(tagsJSON, ",") // ["fdg", "hgfj", "dsfg", "gfhj"]	err = json.Unmarshal([]byte(tagsJSON), &tags)
-	if err != nil {
-		log.Println("Error parsing tags:", err)
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"message": "Error parsing tags",
-		})
+	tags := []string{}
+	// JSON 형식의 해시태그를 Go 슬라이스로 변환
+	if tagsJSON != "" {
+		tags = strings.Split(tagsJSON, ",") // ["fdg", "hgfj", "dsfg", "gfhj"]	err = json.Unmarshal([]byte(tagsJSON), &tags)
+		if err != nil {
+			log.Println("Error parsing tags:", err)
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"message": "Error parsing tags",
+			})
+		}
 	}
 
 	// 데이터베이스에 저장
