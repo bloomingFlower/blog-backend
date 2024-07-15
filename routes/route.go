@@ -7,35 +7,35 @@ import (
 )
 
 func Setup(app *fiber.App) {
-	app.Post("/api/log", controller.SaveAPILog)
+	app.Post("/api/v1/log", controller.SaveAPILog)
 
-	app.Post("/api/register", controller.Register)
-	app.Delete("/api/user", middleware.IsAuthenticate, controller.DeleteUser)
-	app.Put("/api/user", middleware.IsAuthenticate, controller.UpdateUser)
-	app.Post("/api/login", controller.Login)
+	app.Post("/api/v1/register", controller.Register)
+	app.Delete("/api/v1/user", middleware.IsAuthenticate, controller.DeleteUser)
+	app.Put("/api/v1/user", middleware.IsAuthenticate, controller.UpdateUser)
+	app.Post("/api/v1/login", controller.Login)
 
-	app.Static("/api/uploads", "./uploads")
-	app.Get("/api/posts", controller.AllPost)
-	app.Get("/api/posts/search", controller.SearchPost)
-	app.Put("/api/post/:id/hide", controller.HidePost)
+	app.Static("/api/v1/uploads", "./uploads")
+	app.Get("/api/v1/posts", controller.AllPost)
+	app.Get("/api/v1/posts/search", controller.SearchPost)
+	app.Put("/api/v1/post/:id/hide", controller.HidePost)
 
-	app.Get("/api/post/:id", controller.DetailPost)
+	app.Get("/api/v1/post/:id", controller.DetailPost)
 
-	app.Use("/api", middleware.IsAuthenticate)
-	app.Post("/api/posts", middleware.IsAuthenticate, controller.CreatePost)
+	app.Use("/api/v1", middleware.IsAuthenticate)
+	app.Post("/api/v1/posts", middleware.IsAuthenticate, controller.CreatePost)
 
-	app.Put("/api/post/:id", middleware.IsAuthenticate, controller.UpdatePost)
-	app.Get("/api/unique-post", controller.UniquePost)
-	app.Delete("/api/delete-post/:id", controller.DeletePost)
+	app.Put("/api/v1/post/:id", middleware.IsAuthenticate, controller.UpdatePost)
+	app.Get("/api/v1/unique-post", controller.UniquePost)
+	app.Delete("/api/v1/delete-post/:id", controller.DeletePost)
 
-	app.Post("/api/upload-file", middleware.IsAuthenticate, controller.UploadFile)
-	app.Post("/api/upload-img", middleware.IsAuthenticate, controller.UploadImage)
+	app.Post("/api/v1/upload-file", middleware.IsAuthenticate, controller.UploadFile)
+	app.Post("/api/v1/upload-img", middleware.IsAuthenticate, controller.UploadImage)
 
 	//social login
-	app.Get("/auth/google/login", controller.GoogleLogin)
-	app.Get("/auth/google/callback", controller.GoogleCallback)
-	app.Get("/auth/github/login", controller.GithubLogin)
-	app.Get("/auth/github/callback", controller.GithubCallback)
-	app.Get("/auth/metamask/login", controller.MetamaskLogin)
-	//app.Get("/auth/metamask/callback", controller.MetamaskCallback)
+	app.Get("/api/v1/auth/google/login", controller.GoogleLogin)
+	app.Get("/api/v1/auth/google/callback", controller.GoogleCallback)
+	app.Get("/api/v1/auth/github/login", controller.GithubLogin)
+	app.Get("/api/v1/auth/github/callback", controller.GithubCallback)
+	app.Get("/api/v1/auth/metamask/login", controller.MetamaskLogin)
+	//app.Get("/api/v1/auth/metamask/callback", controller.MetamaskCallback)
 }

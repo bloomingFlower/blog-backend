@@ -1,13 +1,14 @@
 package controller
 
 import (
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/log"
 	"math/rand"
 	"mime"
 	"os"
 	"path/filepath"
 	"strconv"
+
+	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/log"
 )
 
 const MaxUploadSize = 10 * 1024 * 1024 // 10 MB
@@ -110,7 +111,7 @@ func UploadFile(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(fiber.Map{
-		"url": baseURL + "/api/uploads/" + postID + "/" + filepath.Base(filePath),
+		"url": baseURL + "/api/v1/uploads/" + postID + "/" + filepath.Base(filePath),
 	})
 }
 
@@ -146,7 +147,7 @@ func UploadImage(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(fiber.Map{
-		"url": baseURL + "/api/uploads/" + postID + "/" + filepath.Base(filePath),
+		"url": baseURL + "/api/v1/uploads/" + postID + "/" + filepath.Base(filePath),
 	})
 }
 
