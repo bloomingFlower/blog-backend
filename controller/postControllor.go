@@ -3,12 +3,13 @@ package controller
 import (
 	"errors"
 	"fmt"
-	"gorm.io/gorm"
 	"log"
 	"math"
 	"os"
 	"strconv"
 	"strings"
+
+	"gorm.io/gorm"
 
 	"github.com/bloomingFlower/blog-backend/database"
 	"github.com/bloomingFlower/blog-backend/models"
@@ -95,7 +96,7 @@ func CreatePost(c *fiber.Ctx) error {
 // AllPost returns all posts
 func AllPost(c *fiber.Ctx) error {
 	page, _ := strconv.Atoi(c.Query("page", "1"))
-	limit := 5
+	limit := 6
 	offset := (page - 1) * limit
 	var total int64
 	var posts []models.Post
@@ -312,7 +313,7 @@ func SearchPost(c *fiber.Ctx) error {
 	query := c.Query("query", "")
 	searchType := c.Query("type", "all")
 	page, _ := strconv.Atoi(c.Query("page", "1"))
-	limit := 5
+	limit := 6
 	offset := (page - 1) * limit
 
 	// Initialize an empty slice to hold the results
