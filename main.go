@@ -1,9 +1,10 @@
 package main
 
 import (
-	"github.com/gofiber/fiber/v2/middleware/cors"
 	"log"
 	"os"
+
+	"github.com/gofiber/fiber/v2/middleware/cors"
 
 	"github.com/bloomingFlower/blog-backend/database"
 	"github.com/bloomingFlower/blog-backend/routes"
@@ -13,9 +14,9 @@ import (
 
 func main() {
 	database.Connect()
-	err := godotenv.Load(".env")
-	if err != nil {
-		log.Fatal("Error loading .env file")
+	// Load .env file
+	if err := godotenv.Load(".env"); err != nil {
+		log.Printf("Warning: Error loading .env file: %v", err)
 	}
 	port := os.Getenv("PORT")
 	app := fiber.New()
@@ -33,8 +34,8 @@ func main() {
 	})
 
 	routes.Setup(app)
-	err = app.Listen(":" + port)
-	if err != nil {
-		return
+	// Log warning if unable to start the server
+	if err := app.Listen(":" + port); err != nil {
+		log.Printf("Warning: Unable to start server: %v", err)
 	}
 }
