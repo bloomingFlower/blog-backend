@@ -1,6 +1,6 @@
 vendor
 .env
-./blog-backend
+blog-backend
 .idea
 node_modules
 ```

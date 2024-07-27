@@ -21,7 +21,6 @@ func Setup(app *fiber.App) {
 
 	app.Get("/api/v1/post/:id", controller.DetailPost)
 
-	app.Use("/api/v1", middleware.IsAuthenticate)
 	app.Post("/api/v1/posts", middleware.IsAuthenticate, controller.CreatePost)
 
 	app.Put("/api/v1/post/:id", middleware.IsAuthenticate, controller.UpdatePost)
