@@ -49,7 +49,7 @@ jobs:
           push: true
           tags: |
             bloomingflower/blog-backend:latest
-          target: blog-backend
+            bloomingflower/blog-backend:${{ github.sha }}
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
 
