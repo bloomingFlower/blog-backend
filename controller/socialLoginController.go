@@ -3,15 +3,21 @@ package controller
 import (
 	"context"
 	"encoding/json"
+	"io"
+	"log"
+	"net/http"
+	"os"
+	"time"
+
 	"github.com/bloomingFlower/blog-backend/database"
 	"github.com/bloomingFlower/blog-backend/models"
+	"github.com/bloomingFlower/blog-backend/util"
 	"github.com/gofiber/fiber/v2"
+	"github.com/joho/godotenv"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/github"
 	"golang.org/x/oauth2/google"
-	"io"
-	"net/http"
-	"os"
+	"gorm.io/gorm"
 )
 
 var (
@@ -22,15 +28,24 @@ var (
 		Scopes:       []string{"https://www.googleapis.com/auth/userinfo.email", "https://www.googleapis.com/auth/userinfo.profile"},
 		Endpoint:     google.Endpoint,
 	}
+)
 
-	githubOauthConfig = &oauth2.Config{
-		RedirectURL:  "http://localhost:8080/auth/github/callback",
+func init() {
+	// Load environment variables from .env file
+	if err := godotenv.Load(); err != nil {
+		log.Println("No .env file found")
+	}
+}
+
+func getGithubOauthConfig() *oauth2.Config {
+	return &oauth2.Config{
+		RedirectURL:  "http://localhost:8008/api/v1/auth/github/callback",
 		ClientID:     os.Getenv("GITHUB_CLIENT_ID"),
 		ClientSecret: os.Getenv("GITHUB_CLIENT_PD"),
-		Scopes:       []string{"user:email"},
+		Scopes:       []string{"user", "user:email"}, // Added "user" scope
 		Endpoint:     github.Endpoint,
 	}
-)
+}
 
 func GoogleLogin(c *fiber.Ctx) error {
 	url := googleOauthConfig.AuthCodeURL("state", oauth2.AccessTypeOffline)
@@ -84,48 +99,103 @@ func GoogleCallback(c *fiber.Ctx) error {
 }
 
 func GithubLogin(c *fiber.Ctx) error {
-	url := githubOauthConfig.AuthCodeURL("state", oauth2.AccessTypeOffline)
-	return c.Redirect(url)
+	githubOauthConfig := getGithubOauthConfig()
+	url := githubOauthConfig.AuthCodeURL("state", oauth2.AccessTypeOffline, oauth2.SetAuthURLParam("scope", "user:email"))
+	return c.JSON(fiber.Map{
+		"url": url,
+	})
 }
 
 func GithubCallback(c *fiber.Ctx) error {
+	githubOauthConfig := getGithubOauthConfig()
 	code := c.Query("code")
 	token, err := githubOauthConfig.Exchange(context.Background(), code)
 	if err != nil {
-		return c.Status(http.StatusUnauthorized).SendString("Unauthorized")
+		log.Println("Token Exchange Error:", err)
+		return c.Status(http.StatusUnauthorized).JSON(fiber.Map{
+			"message": "Unauthorized",
+		})
 	}
 
 	client := githubOauthConfig.Client(context.Background(), token)
 	resp, err := client.Get("https://api.github.com/user")
 	if err != nil {
-		return c.Status(http.StatusInternalServerError).SendString("Internal server error")
+		log.Println("GitHub API Error:", err)
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
+			"message": "Internal server error",
+		})
 	}
-
 	defer resp.Body.Close()
-	data, err := io.ReadAll(resp.Body)
+
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return c.Status(http.StatusInternalServerError).SendString("Internal server error")
+		log.Println("Read Body Error:", err)
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
+			"message": "Internal server error",
+		})
 	}
 
 	var userData map[string]interface{}
-	err = json.Unmarshal(data, &userData)
+	err = json.Unmarshal(body, &userData)
 	if err != nil {
-		return c.Status(http.StatusInternalServerError).SendString("Internal server error")
+		log.Println("JSON Unmarshal Error:", err)
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
+			"message": "Internal server error",
+		})
+	}
+
+	githubID, ok := userData["id"].(float64)
+	if !ok {
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
+			"message": "Invalid GitHub ID",
+		})
 	}
 
 	var user models.User
-	database.DB.Where("email = ?", userData["email"]).First(&user)
-	if user.ID == 0 {
-		user = models.User{
-			FirstName: userData["name"].(string),
-			Email:     userData["email"].(string),
-			Picture:   userData["avatar_url"].(string),
+	result := database.DB.Where("github_id = ?", int64(githubID)).First(&user)
+	if result.Error != nil {
+		if result.Error == gorm.ErrRecordNotFound {
+			// New user creation
+			user = models.User{
+				GithubID:  int64(githubID),
+				FirstName: userData["login"].(string),
+				Email:     userData["email"].(string),
+			}
+			if err := database.DB.Create(&user).Error; err != nil {
+				log.Println("User Creation Error:", err)
+				return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
+					"message": "Failed to create user",
+				})
+			}
+		} else {
+			log.Println("Database Error:", result.Error)
+			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
+				"message": "Database error",
+			})
 		}
-		database.DB.Create(&user)
 	}
 
+	// JWT token generation
+	jwtToken, err := util.GenerateJwt(user.ID)
+	if err != nil {
+		log.Println("JWT Generation Error:", err)
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
+			"message": "Unable to login",
+		})
+	}
+
+	// Set cookie
+	cookie := fiber.Cookie{
+		Name:     "jwt",
+		Value:    jwtToken,
+		Expires:  time.Now().Add(time.Hour * 24),
+		HTTPOnly: true,
+	}
+	c.Cookie(&cookie)
+
 	return c.JSON(fiber.Map{
-		"user":    user,
 		"message": "User logged in successfully",
+		"user":    user,
+		"token":   jwtToken,
 	})
 }

@@ -7,10 +7,11 @@ type User struct {
 	FirstName     string `json:"first_name"`
 	LastName      string `json:"last_name"`
 	Email         string `json:"email"`
+	GithubID      int64  `json:"github_id"`
+	PublicAddress string `json:"public_address"`
 	Password      []byte `json:"-"` // - means that this field will not be returned in the response
 	Phone         string `json:"phone"`
 	Picture       string `json:"picture"`
-	PublicAddress string `json:"public_address"`
 }
 
 func (u *User) SetPassword(password string) {
