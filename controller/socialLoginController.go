@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"log"
 	"net/http"
@@ -167,10 +168,25 @@ func GithubCallback(c *fiber.Ctx) error {
 		if result.Error == gorm.ErrRecordNotFound {
 			// New user creation
 			user = models.User{
-				GithubID:  int64(githubID),
-				FirstName: userData["login"].(string),
-				Email:     userData["email"].(string),
+				GithubID: int64(githubID),
 			}
+
+			// Handle login field from GitHub
+			if login, ok := userData["login"].(string); ok {
+				user.FirstName = login
+			}
+
+			// Handle email field from GitHub
+			if email, ok := userData["email"].(string); ok {
+				user.Email = email
+			} else {
+				// Get email from GitHub API if not provided
+				email, err := getGithubUserEmail(client)
+				if err == nil {
+					user.Email = email
+				}
+			}
+
 			if err := database.DB.Create(&user).Error; err != nil {
 				log.Println("User Creation Error:", err)
 				return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
@@ -208,4 +224,31 @@ func GithubCallback(c *fiber.Ctx) error {
 		"user":    user,
 		"token":   jwtToken,
 	})
+}
+
+// Function to get GitHub user email
+func getGithubUserEmail(client *http.Client) (string, error) {
+	resp, err := client.Get("https://api.github.com/user/emails")
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	var emails []struct {
+		Email    string `json:"email"`
+		Primary  bool   `json:"primary"`
+		Verified bool   `json:"verified"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&emails); err != nil {
+		return "", err
+	}
+
+	for _, email := range emails {
+		if email.Primary && email.Verified {
+			return email.Email, nil
+		}
+	}
+
+	return "", errors.New("no primary verified email found")
 }
