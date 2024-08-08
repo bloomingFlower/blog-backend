@@ -22,7 +22,7 @@ import (
 
 var (
 	googleOauthConfig = &oauth2.Config{
-		RedirectURL:  "http://localhost:8080/auth/google/callback",
+		RedirectURL:  os.Getenv("GOOGLE_REDIRECT_URL"),
 		ClientID:     os.Getenv("GOOGLE_CLIENT_ID"),
 		ClientSecret: os.Getenv("GOOGLE_CLIENT_PD"),
 		Scopes:       []string{"https://www.googleapis.com/auth/userinfo.email", "https://www.googleapis.com/auth/userinfo.profile"},
@@ -35,14 +35,24 @@ func init() {
 	if err := godotenv.Load(); err != nil {
 		log.Println("No .env file found")
 	}
+
+	// Use FRONTEND_URL for Google redirect if not set
+	if googleOauthConfig.RedirectURL == "" {
+		googleOauthConfig.RedirectURL = os.Getenv("FRONTEND_URL") + "/auth/google/callback"
+	}
 }
 
 func getGithubOauthConfig() *oauth2.Config {
+	redirectURL := os.Getenv("FRONTEND_URL")
+	if redirectURL == "" {
+		redirectURL = "http://localhost:8080"
+	}
+
 	return &oauth2.Config{
-		RedirectURL:  "http://localhost:8008/api/v1/auth/github/callback",
+		RedirectURL:  redirectURL + "/github-callback",
 		ClientID:     os.Getenv("GITHUB_CLIENT_ID"),
 		ClientSecret: os.Getenv("GITHUB_CLIENT_PD"),
-		Scopes:       []string{"user", "user:email"}, // Added "user" scope
+		Scopes:       []string{"user", "user:email"},
 		Endpoint:     github.Endpoint,
 	}
 }
