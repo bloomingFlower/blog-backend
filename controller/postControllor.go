@@ -3,11 +3,12 @@ package controller
 import (
 	"errors"
 	"fmt"
-	"log"
 	"math"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"gorm.io/gorm"
 
@@ -15,6 +16,7 @@ import (
 	"github.com/bloomingFlower/blog-backend/models"
 	"github.com/bloomingFlower/blog-backend/util"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/log"
 )
 
 func CreatePost(c *fiber.Ctx) error {
@@ -50,10 +52,11 @@ func CreatePost(c *fiber.Ctx) error {
 
 	// 데이터베이스에 저장
 	blogpost := models.Post{
-		UserID:  userID,
-		Title:   title,
-		Content: content,
-		Tags:    strings.Join(tags, ","),
+		UserID:    userID,
+		Title:     title,
+		Content:   content,
+		Tags:      strings.Join(tags, ","),
+		UpdatedAt: nil,
 	}
 	if err := database.DB.Create(&blogpost).Error; err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -62,7 +65,7 @@ func CreatePost(c *fiber.Ctx) error {
 	}
 
 	// 포스트 ID를 기준으로 디렉토리 생성
-	dirPath := fmt.Sprintf("./uploads/%d/", blogpost.ID)
+	dirPath := fmt.Sprintf("uploads/%d", blogpost.ID)
 	_, err = os.Stat(dirPath)
 	if os.IsNotExist(err) {
 		errDir := os.MkdirAll(dirPath, 0755)
@@ -80,7 +83,8 @@ func CreatePost(c *fiber.Ctx) error {
 				"message": "Could not save file",
 			})
 		}
-		blogpost.File = filePath
+		blogpost.File = fmt.Sprintf("files/%d/%s", blogpost.ID, filePath)
+		log.Debug("--> PostController: CreatePost: blogpost.File: ", blogpost.File)
 		if err = database.DB.Save(&blogpost).Error; err != nil {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 				"message": "Unable to save file path",
@@ -109,7 +113,7 @@ func AllPost(c *fiber.Ctx) error {
 	}
 	idInt, err := strconv.Atoi(idStr)
 	if err != nil {
-		log.Println(err.Error())
+		log.Error(err.Error())
 		return err
 	}
 	userId := uint(idInt)
@@ -162,7 +166,7 @@ func DetailPost(c *fiber.Ctx) error {
 	}
 	idInt, err := strconv.Atoi(idStr)
 	if err != nil {
-		log.Println(err.Error())
+		log.Error(err.Error())
 		return err
 	}
 	userId := uint(idInt)
@@ -238,32 +242,34 @@ func UpdatePost(c *fiber.Ctx) error {
 	if tagsJSON != "" {
 		tags = strings.Split(tagsJSON, ",") // ["fdg", "hgfj", "dsfg", "gfhj"]	err = json.Unmarshal([]byte(tagsJSON), &tags)
 		if err != nil {
-			log.Println("Error parsing tags:", err)
+			log.Error("Error parsing tags:", err)
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 				"message": "Error parsing tags",
 			})
 		}
 	}
 
-	// 데이터베이스에 저장
+	// 현재 시간을 UpdatedAt으로 설정
+	now := time.Now()
 	blogpost := models.Post{
-		UserID:  uint(userID),
-		Title:   title,
-		Content: content,
-		Tags:    strings.Join(tags, ","),
+		UserID:    uint(userID),
+		Title:     title,
+		Content:   content,
+		Tags:      strings.Join(tags, ","),
+		UpdatedAt: &now,
 	}
 	if err := c.BodyParser(&blogpost); err != nil {
 		fmt.Println("Error parsing body")
 	}
 	result := database.DB.Model(&blogpost).Where("id = ?", postID).Updates(blogpost)
 	if result.Error != nil {
-		log.Println("Error updating post:", result.Error)
+		log.Error("Error updating post:", result.Error)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"message": "Error updating post",
 		})
 	}
 	// 포스트 ID를 기준으로 디렉토리 생성
-	dirPath := fmt.Sprintf("./uploads/%d/", blogpost.ID)
+	dirPath := fmt.Sprintf("uploads/%d", post.ID)
 	_, err = os.Stat(dirPath)
 	if os.IsNotExist(err) {
 		errDir := os.MkdirAll(dirPath, 0755)
@@ -273,19 +279,31 @@ func UpdatePost(c *fiber.Ctx) error {
 	}
 
 	// 파일이 있을 경우, 파일 저장
-	filePath := ""
+	filename := ""
 	if _, err := c.FormFile("file"); err == nil {
-		filePath, err = SaveFile(c, dirPath)
+		// 기존 파일 삭제
+		if post.File != "" {
+			log.Debug("--> PostController: UpdatePost: post.ID: ", post.ID)
+			log.Debug("--> PostController: UpdatePost: post.File: ", post.File)
+			oldFilePath := filepath.Join("uploads", strconv.Itoa(int(post.ID)), filepath.Base(post.File))
+			if err := os.Remove(oldFilePath); err != nil {
+				log.Error("Error deleting old file: %v", err)
+			}
+		}
+
+		// 새 파일 저장
+		filename, err = SaveFile(c, dirPath)
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 				"message": "Could not save file",
 			})
 		}
-		blogpost.File = filePath
-		log.Println("filePath: ", filePath)
-		if err = database.DB.Save(&blogpost).Error; err != nil {
+		log.Debug("--> PostController: UpdatePost: post.ID: ", post.ID)
+		post.File = fmt.Sprintf("files/%d/%s", post.ID, filename)
+		log.Debug("--> PostController: UpdatePost: post.File: ", post.File)
+		if err = database.DB.Model(&post).Update("file", post.File).Error; err != nil {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-				"message": "Unable to save file path",
+				"message": "Unable to update file path",
 			})
 		}
 	}
@@ -295,11 +313,25 @@ func UpdatePost(c *fiber.Ctx) error {
 	})
 }
 
+func ServeFile(c *fiber.Ctx) error {
+	id := c.Params("id")
+	filename := c.Params("filename")
+	path := fmt.Sprintf("uploads/%s/%s", id, filename)
+	log.Debug("--> PostController: ServeFile: path: ", path)
+
+	// Content-Disposition 헤더 설정
+	c.Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", filename))
+
+	c.Type(filepath.Ext(filename))
+
+	return c.SendFile(path)
+}
+
 func UniquePost(c *fiber.Ctx) error {
 	cookie := c.Cookies("jwt")
 	id, err := util.ParseJwt(cookie)
 	if err != nil {
-		log.Println(err)
+		log.Error(err)
 		c.Status(fiber.StatusUnauthorized)
 		return c.JSON(fiber.Map{
 			"message": "Unauthorized",

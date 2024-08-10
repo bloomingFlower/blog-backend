@@ -2,5 +2,6 @@ vendor
 .env
 blog-backend
 .idea
+uploads/*
 node_modules
 ```

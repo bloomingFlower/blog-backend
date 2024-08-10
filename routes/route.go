@@ -7,34 +7,47 @@ import (
 )
 
 func Setup(app *fiber.App) {
-	app.Post("/api/v1/log", controller.SaveAPILog)
+	// API v1 그룹 생성
+	v1 := app.Group("/api/v1")
 
-	app.Post("/api/v1/register", controller.Register)
-	app.Delete("/api/v1/user", middleware.IsAuthenticate, controller.DeleteUser)
-	app.Put("/api/v1/user", middleware.IsAuthenticate, controller.UpdateUser)
-	app.Post("/api/v1/login", controller.Login)
+	// 로그 및 인증 관련 라우트
+	v1.Post("/log", controller.SaveAPILog)
+	v1.Post("/register", controller.Register)
+	v1.Post("/login", controller.Login)
 
-	app.Static("/api/v1/uploads", "./uploads")
-	app.Get("/api/v1/posts", controller.AllPost)
-	app.Get("/api/v1/posts/search", controller.SearchPost)
-	app.Put("/api/v1/post/:id/hide", controller.HidePost)
+	// 인증이 필요한 사용자 관련 라우트
+	user := v1.Group("/user")
+	user.Use(middleware.IsAuthenticate)
+	user.Delete("", controller.DeleteUser)
+	user.Put("", controller.UpdateUser)
 
-	app.Get("/api/v1/post/:id", controller.DetailPost)
+	// 정적 파일 서빙
+	v1.Static("/download", "./uploads")
 
-	app.Post("/api/v1/posts", middleware.IsAuthenticate, controller.CreatePost)
+	// 포스트 관련 라우트
+	posts := v1.Group("/posts")
+	posts.Get("", controller.AllPost)
+	posts.Get("/search", controller.SearchPost)
+	posts.Post("", middleware.IsAuthenticate, controller.CreatePost)
 
-	app.Put("/api/v1/post/:id", middleware.IsAuthenticate, controller.UpdatePost)
-	app.Get("/api/v1/unique-post", controller.UniquePost)
-	app.Delete("/api/v1/delete-post/:id", controller.DeletePost)
+	post := v1.Group("/post")
+	post.Get("/:id", controller.DetailPost)
+	post.Put("/:id", middleware.IsAuthenticate, controller.UpdatePost)
+	post.Put("/:id/hide", controller.HidePost)
+	post.Delete("/:id", middleware.IsAuthenticate, controller.DeletePost)
 
-	app.Post("/api/v1/upload-file", middleware.IsAuthenticate, controller.UploadFile)
-	app.Post("/api/v1/upload-img", middleware.IsAuthenticate, controller.UploadImage)
+	v1.Get("/unique-post", controller.UniquePost)
 
-	//social login
-	app.Get("/api/v1/auth/google/login", controller.GoogleLogin)
-	app.Get("/api/v1/auth/google/callback", controller.GoogleCallback)
-	app.Get("/api/v1/auth/github/login", controller.GithubLogin)
-	app.Get("/api/v1/auth/github/callback", controller.GithubCallback)
-	app.Get("/api/v1/auth/metamask/login", controller.MetamaskLogin)
-	//app.Get("/api/v1/auth/metamask/callback", controller.MetamaskCallback)
+	// 파일 업로드 관련 라우트
+	v1.Post("/upload-file", middleware.IsAuthenticate, controller.UploadFile)
+	v1.Post("/upload-img", middleware.IsAuthenticate, controller.UploadImage)
+	v1.Get("/files/:id/:filename", middleware.IsAuthenticate, controller.ServeFile)
+
+	// 소셜 로그인 관련 라우트
+	auth := v1.Group("/auth")
+	auth.Get("/google/login", controller.GoogleLogin)
+	auth.Get("/google/callback", controller.GoogleCallback)
+	auth.Get("/github/login", controller.GithubLogin)
+	auth.Get("/github/callback", controller.GithubCallback)
+	auth.Get("/metamask/login", controller.MetamaskLogin)
 }

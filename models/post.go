@@ -9,8 +9,8 @@ type Post struct {
 	File      string     `json:"file"`
 	Tags      string     `json:"tags"`
 	Category  string     `json:"category"`
-	CreatedAt time.Time  `json:"created_at"`
-	UpdatedAt time.Time  `json:"updated_at"`
+	CreatedAt time.Time  `json:"created_at" gorm:"autoCreateTime"`
+	UpdatedAt *time.Time `json:"updated_at" gorm:"autoUpdateTime:false"`
 	DeletedAt *time.Time `gorm:"index" json:"deleted_at"`
 	Hidden    bool       `json:"hidden"`
 	UserID    uint       `json:"user_id"`

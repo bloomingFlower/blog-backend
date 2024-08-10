@@ -23,6 +23,7 @@ func RandomString(length int) string {
 }
 
 func SaveFile(c *fiber.Ctx, dirPath string) (string, error) {
+	log.Debug("--> FileController: SaveFile")
 	// Define a list of allowed file extensions
 	allowedExtensions := map[string]bool{
 		".jpg":  true,
@@ -69,10 +70,11 @@ func SaveFile(c *fiber.Ctx, dirPath string) (string, error) {
 		return "", err
 	}
 
-	return filePath, nil
+	return filename, nil
 }
 
 func UploadFile(c *fiber.Ctx) error {
+	log.Debug("--> FileController: UploadFile")
 	// Extract the post ID from the request
 	postID := c.Params("postID")
 	// Check if postID is empty
@@ -114,6 +116,7 @@ func UploadFile(c *fiber.Ctx) error {
 }
 
 func UploadImage(c *fiber.Ctx) error {
+	log.Debug("--> FileController: UploadImage")
 	// Extract the post ID from the request
 	postID := c.Params("postID")
 
@@ -150,6 +153,7 @@ func UploadImage(c *fiber.Ctx) error {
 }
 
 func SaveImage(c *fiber.Ctx, dirPath string) (string, error) {
+	log.Debug("--> FileController: SaveImage")
 	// Define a list of allowed MIME types for images
 	allowedMimeTypes := map[string]bool{
 		"image/jpeg": true,
