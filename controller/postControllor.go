@@ -115,15 +115,23 @@ func AllPost(c *fiber.Ctx) error {
 	userId := uint(idInt)
 	if userId == 0 {
 		// If not logged in, exclude hidden posts
-		database.DB.Preload("User").Where("hidden = ? OR hidden IS NULL", false).Offset(offset).Limit(limit).Find(&posts)
-		database.DB.Model(&models.Post{}).Where("hidden = ? OR hidden IS NULL", false).Count(&total)
+		database.DB.Preload("User").
+			Where("hidden = ? OR hidden IS NULL", false).
+			Order("created_at DESC").
+			Offset(offset).Limit(limit).
+			Find(&posts)
+		database.DB.Model(&models.Post{}).
+			Where("hidden = ? OR hidden IS NULL", false).
+			Count(&total)
 	} else {
-		database.DB.Preload("User").Offset(offset).Limit(limit).Find(&posts)
+		database.DB.Preload("User").
+			Order("created_at DESC").
+			Offset(offset).Limit(limit).
+			Find(&posts)
 		database.DB.Model(&models.Post{}).Count(&total)
 	}
 
 	lastPage := int(math.Ceil(float64(total) / float64(limit)))
-
 	return c.JSON(fiber.Map{
 		"data": posts,
 		"meta": fiber.Map{
@@ -192,30 +200,41 @@ func UpdatePost(c *fiber.Ctx) error {
 		})
 	}
 
-	// 제목, Quill의 내용, 해시태그 파싱
 	// Check if the user is logged in
 	cookie := c.Cookies("jwt")
 	idStr, err := util.ParseJwt(cookie)
 	if err != nil {
-		idStr = "0"
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"message": "Unauthorized",
+		})
 	}
-	idInt, err := strconv.Atoi(idStr)
+	userID, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
-		log.Println(err.Error())
-		return err
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"message": "Invalid user ID",
+		})
 	}
-	userID := uint(idInt)
 
+	// Find the post
+	var post models.Post
+	if err := database.DB.First(&post, postID).Error; err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"message": "Post not found",
+		})
+	}
+
+	// Check if the user is the owner of the post
+	if post.UserID != uint(userID) {
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+			"message": "You don't have permission to update this post",
+		})
+	}
+
+	// 제목, Quill의 내용, 해시태그 파싱
 	title := c.FormValue("title")
 	content := c.FormValue("content")
 	tagsJSON := c.FormValue("tags") // 해시태그는 JSON 형식의 문자열로 가정
-	log.Println("c.FormValue(content): ", c.FormValue("content"))
-	log.Println("c.FormValue(tags): ", c.FormValue("tags"))
-	log.Println("c.Locals(userID): ", c.Locals("userID"))
-	log.Println("c.FormValue(title): ", c.FormValue("title"))
-	// JSON 형식의 해시태그를 Go 슬라이스로 변환
 	tags := []string{}
-	// JSON 형식의 해시태그를 Go 슬라이스로 변환
 	if tagsJSON != "" {
 		tags = strings.Split(tagsJSON, ",") // ["fdg", "hgfj", "dsfg", "gfhj"]	err = json.Unmarshal([]byte(tagsJSON), &tags)
 		if err != nil {
@@ -228,7 +247,7 @@ func UpdatePost(c *fiber.Ctx) error {
 
 	// 데이터베이스에 저장
 	blogpost := models.Post{
-		UserID:  userID,
+		UserID:  uint(userID),
 		Title:   title,
 		Content: content,
 		Tags:    strings.Join(tags, ","),
@@ -294,14 +313,45 @@ func UniquePost(c *fiber.Ctx) error {
 
 func DeletePost(c *fiber.Ctx) error {
 	id, _ := strconv.Atoi(c.Params("id"))
+
+	// Check if the user is logged in
+	cookie := c.Cookies("jwt")
+	idStr, err := util.ParseJwt(cookie)
+	if err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"message": "Unauthorized",
+		})
+	}
+	userID, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"message": "Invalid user ID",
+		})
+	}
+
+	// Find the post
 	var post models.Post
-	deleteQuery := database.DB.Where("id = ?", id).Delete(&post)
-	if errors.Is(deleteQuery.Error, gorm.ErrRecordNotFound) {
-		c.Status(fiber.StatusBadRequest)
-		return c.JSON(fiber.Map{
+	if err := database.DB.First(&post, id).Error; err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"message": "Post not found",
+		})
+	}
+
+	// Check if the user is the owner of the post
+	if post.UserID != uint(userID) {
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+			"message": "You don't have permission to delete this post",
+		})
+	}
+
+	// Delete the post
+	deleteQuery := database.DB.Delete(&post)
+	if deleteQuery.Error != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"message": "Unable to delete post",
 		})
 	}
+
 	return c.JSON(fiber.Map{
 		"message": "Post deleted successfully",
 	})

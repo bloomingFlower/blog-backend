@@ -28,17 +28,15 @@ func SaveFile(c *fiber.Ctx, dirPath string) (string, error) {
 		".jpg":  true,
 		".jpeg": true,
 		".png":  true,
-		".txt":  true, // Allow text files
-		".pdf":  true, // Allow PDF files
-		// Add more allowed extensions here
+		".txt":  true,
+		".pdf":  true,
 	}
 	// Define a list of allowed MIME types
 	allowedMimeTypes := map[string]bool{
 		"image/jpeg":      true,
 		"image/png":       true,
-		"text/plain":      true, // Allow text files
-		"application/pdf": true, // Allow PDF files
-		// Add more allowed MIME types here
+		"text/plain":      true,
+		"application/pdf": true,
 	}
 
 	// Parse the uploaded file from the request

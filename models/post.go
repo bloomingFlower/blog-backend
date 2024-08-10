@@ -12,7 +12,7 @@ type Post struct {
 	CreatedAt time.Time  `json:"created_at"`
 	UpdatedAt time.Time  `json:"updated_at"`
 	DeletedAt *time.Time `gorm:"index" json:"deleted_at"`
-	Hidden    bool       `json:"hidden"` // Add this line
+	Hidden    bool       `json:"hidden"`
 	UserID    uint       `json:"user_id"`
 	User      User       `json:"user" gorm:"foreignKey:UserID"`
 }
