@@ -38,9 +38,12 @@ func init() {
 	}
 
 	// Use FRONTEND_URL for Google redirect if not set
-	if googleOauthConfig.RedirectURL == "" {
-		googleOauthConfig.RedirectURL = os.Getenv("FRONTEND_URL") + "/auth/google/callback"
+	redirectURL := os.Getenv("FRONTEND_URL")
+	if redirectURL == "" {
+		redirectURL = "http://localhost:8080"
 	}
+
+	googleOauthConfig.RedirectURL = redirectURL + "/auth/google/callback"
 }
 
 func getGithubOauthConfig() *oauth2.Config {
@@ -50,7 +53,7 @@ func getGithubOauthConfig() *oauth2.Config {
 	}
 
 	return &oauth2.Config{
-		RedirectURL:  redirectURL + "/github-callback",
+		RedirectURL:  redirectURL + "/auth/github/callback",
 		ClientID:     os.Getenv("GITHUB_CLIENT_ID"),
 		ClientSecret: os.Getenv("GITHUB_CLIENT_PD"),
 		Scopes:       []string{"user", "user:email"},
@@ -59,11 +62,14 @@ func getGithubOauthConfig() *oauth2.Config {
 }
 
 func GoogleLogin(c *fiber.Ctx) error {
+	log.Println("GoogleLogin")
 	url := googleOauthConfig.AuthCodeURL("state", oauth2.AccessTypeOffline)
+	log.Println("GoogleLogin", url)
 	return c.Redirect(url)
 }
 
 func GoogleCallback(c *fiber.Ctx) error {
+	log.Println("GoogleCallback")
 	code := c.Query("code")
 	token, err := googleOauthConfig.Exchange(context.Background(), code)
 	if err != nil {
