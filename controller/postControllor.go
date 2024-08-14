@@ -50,12 +50,15 @@ func CreatePost(c *fiber.Ctx) error {
 		}
 	}
 
+	category := c.FormValue("category")
+
 	// 데이터베이스에 저장
 	blogpost := models.Post{
 		UserID:    userID,
 		Title:     title,
 		Content:   content,
 		Tags:      strings.Join(tags, ","),
+		Category:  category,
 		UpdatedAt: nil,
 	}
 	if err := database.DB.Create(&blogpost).Error; err != nil {
@@ -249,6 +252,8 @@ func UpdatePost(c *fiber.Ctx) error {
 		}
 	}
 
+	category := c.FormValue("category")
+
 	// 현재 시간을 UpdatedAt으로 설정
 	now := time.Now()
 	blogpost := models.Post{
@@ -256,6 +261,7 @@ func UpdatePost(c *fiber.Ctx) error {
 		Title:     title,
 		Content:   content,
 		Tags:      strings.Join(tags, ","),
+		Category:  category,
 		UpdatedAt: &now,
 	}
 	if err := c.BodyParser(&blogpost); err != nil {

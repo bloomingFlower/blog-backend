@@ -2,13 +2,14 @@ package controller
 
 import (
 	"fmt"
-	"github.com/bloomingFlower/blog-backend/util"
-	"github.com/dgrijalva/jwt-go"
 	"log"
 	"net/http"
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/bloomingFlower/blog-backend/util"
+	"github.com/dgrijalva/jwt-go"
 
 	"github.com/bloomingFlower/blog-backend/database"
 	"github.com/bloomingFlower/blog-backend/models"
@@ -108,7 +109,6 @@ func Login(c *fiber.Ctx) error {
 			"message": "Unable to login",
 		})
 	}
-
 	cookie := fiber.Cookie{
 		Name:    "jwt",
 		Value:   token,
@@ -117,6 +117,7 @@ func Login(c *fiber.Ctx) error {
 	}
 	c.Cookie(&cookie)
 	c.Status(http.StatusOK)
+
 	return c.JSON(fiber.Map{
 		"message": "Successfully login",
 		"user":    user,
