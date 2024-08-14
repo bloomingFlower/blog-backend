@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -229,7 +230,9 @@ func GithubCallback(c *fiber.Ctx) error {
 		user := models.User{
 			Email: userData["email"].(string),
 		}
-		if name, ok := userData["name"].(string); ok {
+
+		// Try to set name from the 'name' field
+		if name, ok := userData["name"].(string); ok && name != "" {
 			names := strings.Split(name, " ")
 			if len(names) > 0 {
 				user.FirstName = names[0]
@@ -238,6 +241,22 @@ func GithubCallback(c *fiber.Ctx) error {
 				user.LastName = strings.Join(names[1:], " ")
 			}
 		}
+
+		// If FirstName is still empty, try alternative methods
+		if user.FirstName == "" {
+			// Try using login (username) as FirstName
+			if login, ok := userData["login"].(string); ok && login != "" {
+				user.FirstName = login
+			} else if id, ok := userData["id"].(float64); ok {
+				// Use ID as a last resort
+				user.FirstName = fmt.Sprintf("User%d", int(id))
+			} else {
+				// If all else fails, use part of the email
+				parts := strings.Split(user.Email, "@")
+				user.FirstName = parts[0]
+			}
+		}
+
 		if avatar, ok := userData["avatar_url"].(string); ok {
 			user.Picture = avatar
 		}
