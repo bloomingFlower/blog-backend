@@ -491,7 +491,6 @@ func HidePost(c *fiber.Ctx) error {
 
 // RSSFeed generates an RSS feed of recent posts
 func RSSFeed(c *fiber.Ctx) error {
-	log.Debug("--> PostController: RSSFeed: ")
 	var posts []models.Post
 	limit := 10 // Get the latest 10 posts
 

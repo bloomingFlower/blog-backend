@@ -1,14 +1,28 @@
 package routes
 
 import (
+	"time"
+
 	"github.com/bloomingFlower/blog-backend/controller"
 	"github.com/bloomingFlower/blog-backend/middleware"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/limiter"
 )
 
 func Setup(app *fiber.App) {
-	// API v1 그룹 생성
-	v1 := app.Group("/api/v1")
+	// API v1 그룹 생성 및 속도 제한 설정
+	v1 := app.Group("/api/v1", limiter.New(limiter.Config{
+		Max:        100,
+		Expiration: 1 * time.Minute,
+		KeyGenerator: func(c *fiber.Ctx) string {
+			return c.IP()
+		},
+		LimitReached: func(c *fiber.Ctx) error {
+			return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{
+				"message": "Rate limit exceeded",
+			})
+		},
+	}))
 
 	// 로그 및 인증 관련 라우트
 	v1.Post("/log", controller.SaveAPILog)
