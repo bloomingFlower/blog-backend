@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"gorm.io/gorm"
 
@@ -44,7 +45,7 @@ func CreatePost(c *fiber.Ctx) error {
 	content := c.FormValue("content")
 	tagsJSON := c.FormValue("tags") // 해시태그는 JSON 형식의 문자열로 가정
 	tags := []string{}
-	// JSON 형식의 해시태그를 Go 슬라이스로 변환
+	// JSON 형식의 해시태그를 Go 슬라이스 변환
 	if tagsJSON != "" {
 		tags = strings.Split(tagsJSON, ",") // ["fdg", "hgfj", "dsfg", "gfhj"]	err = json.Unmarshal([]byte(tagsJSON), &tags)
 		if err != nil {
@@ -521,10 +522,16 @@ func RSSFeed(c *fiber.Ctx) error {
 	for _, post := range posts {
 		cleanContent := cleanHTMLContent(post.Content)
 
+		// Limit the length of the title
+		title := truncateString(post.Title, 100)
+
+		// Limit the length of the description
+		description := truncateString(cleanContent, 300)
+
 		item := &feeds.Item{
-			Title:       post.Title,
+			Title:       title,
 			Link:        &feeds.Link{Href: fmt.Sprintf("%s/post/%d", baseURL, post.ID)},
-			Description: cleanContent,
+			Description: description,
 			Author:      &feeds.Author{Name: post.User.FirstName + " " + post.User.LastName},
 			Created:     post.CreatedAt,
 		}
@@ -553,4 +560,13 @@ func cleanHTMLContent(content string) string {
 	cleanContent = html.UnescapeString(cleanContent)
 
 	return cleanContent
+}
+
+func truncateString(s string, maxLength int) string {
+	if utf8.RuneCountInString(s) <= maxLength {
+		return s
+	}
+	runes := []rune(s)
+	truncated := string(runes[:maxLength-3]) + "..."
+	return truncated
 }
