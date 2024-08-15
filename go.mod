@@ -5,6 +5,7 @@ go 1.21.2
 require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/gofiber/fiber/v2 v2.52.5
+	github.com/gorilla/feeds v1.2.0
 	github.com/joho/godotenv v1.5.1
 	golang.org/x/crypto v0.21.0
 	golang.org/x/oauth2 v0.16.0
@@ -31,6 +32,7 @@ require (
 	github.com/valyala/tcplisten v1.0.0 // indirect
 	golang.org/x/net v0.23.0 // indirect
 	golang.org/x/sys v0.18.0 // indirect
+	golang.org/x/text v0.17.0
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/protobuf v1.33.0 // indirect
 )

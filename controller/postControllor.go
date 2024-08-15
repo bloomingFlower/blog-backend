@@ -12,11 +12,15 @@ import (
 
 	"gorm.io/gorm"
 
+	"html"
+	"regexp"
+
 	"github.com/bloomingFlower/blog-backend/database"
 	"github.com/bloomingFlower/blog-backend/models"
 	"github.com/bloomingFlower/blog-backend/util"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/log"
+	"github.com/gorilla/feeds"
 )
 
 func CreatePost(c *fiber.Ctx) error {
@@ -108,6 +112,8 @@ func AllPost(c *fiber.Ctx) error {
 	var total int64
 	var posts []models.Post
 
+	category := c.Query("category", "")
+
 	// Check if the user is logged in
 	cookie := c.Cookies("jwt")
 	idStr, err := util.ParseJwt(cookie)
@@ -120,23 +126,32 @@ func AllPost(c *fiber.Ctx) error {
 		return err
 	}
 	userId := uint(idInt)
+
+	// Generate the base query
+	query := database.DB.Preload("User").Order("created_at DESC")
+
+	// Apply category filter
+	if category != "" {
+		query = query.Where("category = ?", category)
+	}
+
 	if userId == 0 {
 		// If not logged in, exclude hidden posts
-		database.DB.Preload("User").
-			Where("hidden = ? OR hidden IS NULL", false).
-			Order("created_at DESC").
-			Offset(offset).Limit(limit).
-			Find(&posts)
-		database.DB.Model(&models.Post{}).
-			Where("hidden = ? OR hidden IS NULL", false).
-			Count(&total)
-	} else {
-		database.DB.Preload("User").
-			Order("created_at DESC").
-			Offset(offset).Limit(limit).
-			Find(&posts)
-		database.DB.Model(&models.Post{}).Count(&total)
+		query = query.Where("hidden = ? OR hidden IS NULL", false)
 	}
+
+	// Apply pagination and retrieve results
+	query.Offset(offset).Limit(limit).Find(&posts)
+
+	// Count the total number of posts
+	countQuery := database.DB.Model(&models.Post{})
+	if category != "" {
+		countQuery = countQuery.Where("category = ?", category)
+	}
+	if userId == 0 {
+		countQuery = countQuery.Where("hidden = ? OR hidden IS NULL", false)
+	}
+	countQuery.Count(&total)
 
 	lastPage := int(math.Ceil(float64(total) / float64(limit)))
 	return c.JSON(fiber.Map{
@@ -472,4 +487,71 @@ func HidePost(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{
 		"message": "Post hidden successfully",
 	})
+}
+
+// RSSFeed generates an RSS feed of recent posts
+func RSSFeed(c *fiber.Ctx) error {
+	log.Debug("--> PostController: RSSFeed: ")
+	var posts []models.Post
+	limit := 10 // Get the latest 10 posts
+
+	result := database.DB.Where("hidden = ? OR hidden IS NULL", false).
+		Order("created_at DESC").
+		Limit(limit).
+		Find(&posts)
+
+	if result.Error != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"message": "Error fetching posts",
+		})
+	}
+
+	baseURL := os.Getenv("BASE_URL")
+	if baseURL == "" {
+		baseURL = "http://localhost:8008"
+	}
+
+	feed := &feeds.Feed{
+		Title:       "Our Journey",
+		Link:        &feeds.Link{Href: baseURL},
+		Description: "Recent posts from Our Journey",
+		Author:      &feeds.Author{Name: "Our Journey"},
+		Created:     time.Now(),
+	}
+
+	for _, post := range posts {
+		cleanContent := cleanHTMLContent(post.Content)
+
+		item := &feeds.Item{
+			Title:       post.Title,
+			Link:        &feeds.Link{Href: fmt.Sprintf("%s/post/%d", baseURL, post.ID)},
+			Description: cleanContent,
+			Author:      &feeds.Author{Name: post.User.FirstName + " " + post.User.LastName},
+			Created:     post.CreatedAt,
+		}
+		feed.Items = append(feed.Items, item)
+	}
+
+	rss, err := feed.ToRss()
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"message": "Error generating RSS feed",
+		})
+	}
+
+	rss = strings.Replace(rss, `<?xml version="1.0"?>`, `<?xml version="1.0" encoding="UTF-8"?>`, 1)
+
+	c.Set("Content-Type", "application/rss+xml; charset=utf-8")
+	return c.Send([]byte(rss))
+}
+
+func cleanHTMLContent(content string) string {
+	// Remove HTML tags
+	re := regexp.MustCompile("<[^>]*>")
+	cleanContent := re.ReplaceAllString(content, "")
+
+	// Decode HTML entities
+	cleanContent = html.UnescapeString(cleanContent)
+
+	return cleanContent
 }

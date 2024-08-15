@@ -33,10 +33,11 @@ func Setup(app *fiber.App) {
 	post := v1.Group("/post")
 	post.Get("/:id", controller.DetailPost)
 	post.Put("/:id", middleware.IsAuthenticate, controller.UpdatePost)
-	post.Put("/:id/hide", controller.HidePost)
+	post.Put("/:id/hide", middleware.IsAuthenticate, controller.HidePost)
 	post.Delete("/:id", middleware.IsAuthenticate, controller.DeletePost)
 
 	v1.Get("/unique-post", controller.UniquePost)
+	v1.Get("/rss", controller.RSSFeed)
 
 	// 파일 업로드 관련 라우트
 	v1.Post("/upload-file", middleware.IsAuthenticate, controller.UploadFile)
