@@ -29,6 +29,7 @@ func SaveFile(c *fiber.Ctx, dirPath string) (string, error) {
 		".jpg":  true,
 		".jpeg": true,
 		".png":  true,
+		".webp": true,
 		".txt":  true,
 		".pdf":  true,
 	}
@@ -36,6 +37,7 @@ func SaveFile(c *fiber.Ctx, dirPath string) (string, error) {
 	allowedMimeTypes := map[string]bool{
 		"image/jpeg":      true,
 		"image/png":       true,
+		"image/webp":      true,
 		"text/plain":      true,
 		"application/pdf": true,
 	}
