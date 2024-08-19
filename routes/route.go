@@ -53,6 +53,22 @@ func Setup(app *fiber.App) {
 	v1.Get("/unique-post", controller.UniquePost)
 	v1.Get("/rss", controller.RSSFeed)
 
+	// 나는
+	v1.Get("/about-me/:id", controller.GetAboutInfo)
+	v1.Post("/about-me", controller.CreateAboutInfo)
+	v1.Put("/about-me/:id", controller.UpdateAboutInfo)
+	v1.Delete("/about-me/:id", controller.DeleteAboutInfo)
+
+	// Section routes
+	v1.Post("/about-me/:aboutInfoID/sections", controller.CreateSection)
+	v1.Put("/about-me/:aboutInfoID/sections/:sectionID", controller.UpdateSection)
+	v1.Delete("/about-me/:aboutInfoID/sections/:sectionID", controller.DeleteSection)
+
+	// SectionItem routes
+	v1.Post("/about-me/:aboutInfoID/sections/:sectionID/items", controller.CreateSectionItem)
+	v1.Put("/about-me/:aboutInfoID/sections/:sectionID/items/:itemID", controller.UpdateSectionItem)
+	v1.Delete("/about-me/:aboutInfoID/sections/:sectionID/items/:itemID", controller.DeleteSectionItem)
+
 	// 파일 업로드 관련 라우트
 	v1.Post("/upload-file", middleware.IsAuthenticate, controller.UploadFile)
 	v1.Post("/upload-img", middleware.IsAuthenticate, controller.UploadImage)
