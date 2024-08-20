@@ -81,4 +81,11 @@ func Setup(app *fiber.App) {
 	auth.Get("/github/login", controller.GithubLogin)
 	auth.Get("/github/callback", controller.GithubCallback)
 	auth.Get("/metamask/login", controller.MetamaskLogin)
+
+	// 댓글 관련 라우트
+	comments := v1.Group("/comments")
+	comments.Get("/:postId", controller.GetComments)
+	comments.Post("/:postId", controller.CreateComment)
+	comments.Post("/:postId/:commentId/replies", controller.CreateReply)
+	comments.Post("/:postId/:commentId/vote", controller.VoteComment)
 }
