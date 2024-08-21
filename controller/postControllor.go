@@ -45,7 +45,7 @@ func CreatePost(c *fiber.Ctx) error {
 	content := c.FormValue("content")
 	tagsJSON := c.FormValue("tags") // 해시태그는 JSON 형식의 문자열로 가정
 	tags := []string{}
-	// JSON 형식의 해시태그를 Go 슬라이스 변환
+	// JSON 형식의 해시태그��� Go 슬라이스 변환
 	if tagsJSON != "" {
 		tags = strings.Split(tagsJSON, ",") // ["fdg", "hgfj", "dsfg", "gfhj"]	err = json.Unmarshal([]byte(tagsJSON), &tags)
 		if err != nil {
@@ -129,7 +129,12 @@ func AllPost(c *fiber.Ctx) error {
 	userId := uint(idInt)
 
 	// Generate the base query
-	query := database.DB.Preload("User").Order("created_at DESC")
+	query := database.DB.Table("posts").
+		Select("posts.*, COUNT(DISTINCT comments.id) as comment_count").
+		Joins("LEFT JOIN comments ON comments.post_id = posts.id").
+		Group("posts.id").
+		Preload("User").
+		Order("posts.created_at DESC")
 
 	// Apply category filter
 	if category != "" {
@@ -142,7 +147,22 @@ func AllPost(c *fiber.Ctx) error {
 	}
 
 	// Apply pagination and retrieve results
-	query.Offset(offset).Limit(limit).Find(&posts)
+	var results []struct {
+		models.Post
+		CommentCount int `json:"comment_count"`
+	}
+	if err := query.Offset(offset).Limit(limit).Find(&results).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"message": "Error fetching posts",
+		})
+	}
+
+	// Map results to posts
+	posts = make([]models.Post, len(results))
+	for i, result := range results {
+		posts[i] = result.Post
+		posts[i].CommentCount = result.CommentCount
+	}
 
 	// Count the total number of posts
 	countQuery := database.DB.Model(&models.Post{})

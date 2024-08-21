@@ -88,4 +88,5 @@ func Setup(app *fiber.App) {
 	comments.Post("/:postId", controller.CreateComment)
 	comments.Post("/:postId/:commentId/replies", controller.CreateReply)
 	comments.Post("/:postId/:commentId/vote", controller.VoteComment)
+	comments.Delete("/:postId/:commentId", controller.DeleteComment)
 }

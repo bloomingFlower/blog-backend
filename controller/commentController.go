@@ -16,7 +16,14 @@ func GetComments(c *fiber.Ctx) error {
 	postID := c.Params("postId")
 	var comments []models.Comment
 
-	result := database.DB.Preload("User").Preload("Votes").Preload("Children").Where("post_id = ? AND parent_id IS NULL", postID).Find(&comments)
+	// Preload User and Children's User, selecting specific fields
+	result := database.DB.Preload("User", func(db *gorm.DB) *gorm.DB {
+		return db.Select("ID", "FirstName", "Picture")
+	}).Preload("Votes").Preload("Children", func(db *gorm.DB) *gorm.DB {
+		return db.Preload("User", func(db *gorm.DB) *gorm.DB {
+			return db.Select("ID", "FirstName", "Picture")
+		}).Preload("Votes")
+	}).Where("post_id = ? AND parent_id IS NULL", postID).Find(&comments)
 
 	if result.Error != nil && result.Error != gorm.ErrRecordNotFound {
 		log.Error("--> CommentController: GetComments: Failed to get comments: ", result.Error)
@@ -32,8 +39,6 @@ func GetComments(c *fiber.Ctx) error {
 
 // CreateComment create comment
 func CreateComment(c *fiber.Ctx) error {
-	log.Debug("--> CommentController: CreateComment: c: ", c)
-
 	postID := c.Params("postId")
 	if postID == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -45,6 +50,13 @@ func CreateComment(c *fiber.Ctx) error {
 	if err := c.BodyParser(&comment); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Failed to parse request body",
+		})
+	}
+
+	// Check comment length
+	if len(comment.Content) > 3000 {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Comment content exceeds 3000 characters limit",
 		})
 	}
 
@@ -78,10 +90,6 @@ func CreateComment(c *fiber.Ctx) error {
 	}
 
 	// Set userID if provided
-	log.Debug("--> CommentController: CreateComment: comment: ", comment)
-	log.Debug("--> CommentController: CreateComment: postID: ", comment.PostID)
-	log.Debug("--> CommentController: CreateComment: content: ", comment.Content)
-	log.Debug("--> CommentController: CreateComment: comment.UserID: ", comment.UserID)
 	if comment.UserID != nil && *comment.UserID != 0 {
 		// Optionally, you can verify if the user exists in the database
 		var user models.User
@@ -100,7 +108,6 @@ func CreateComment(c *fiber.Ctx) error {
 	}
 
 	comment.IPAddress = ip
-	log.Debug("--> CommentController: CreateComment: comment: ", comment)
 	if err := database.DB.Create(&comment).Error; err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to create comment",
@@ -127,6 +134,14 @@ func CreateReply(c *fiber.Ctx) error {
 	if err := c.BodyParser(&reply); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Failed to parse request body",
+			"data":  reply,
+		})
+	}
+
+	// Check reply length
+	if len(reply.Content) > 3000 {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Reply content exceeds 3000 characters limit",
 		})
 	}
 
@@ -150,8 +165,9 @@ func CreateReply(c *fiber.Ctx) error {
 		}
 	}
 
-	// Set ParentID
-	if err := database.DB.First(&models.Comment{}, parentID).Error; err != nil {
+	// Find parent comment to get post_id
+	var parentComment models.Comment
+	if err := database.DB.First(&parentComment, parentID).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 				"error": "Parent comment not found",
@@ -164,7 +180,25 @@ func CreateReply(c *fiber.Ctx) error {
 
 	parentIDUint := uint(parentID)
 	reply.ParentID = &parentIDUint
+	reply.PostID = parentComment.PostID // Set PostID from parent comment
 	reply.IPAddress = ip
+	// Set userID if provided
+	if reply.UserID != nil && *reply.UserID != 0 {
+		// Optionally, you can verify if the user exists in the database
+		var user models.User
+		if err := database.DB.First(&user, reply.UserID).Error; err != nil {
+			if err == gorm.ErrRecordNotFound {
+				return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+					"error": "Invalid User ID",
+				})
+			}
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": "Failed to verify user",
+			})
+		}
+	} else {
+		reply.UserID = nil // Ensure it's nil for anonymous comments
+	}
 
 	if err := database.DB.Create(&reply).Error; err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
@@ -195,8 +229,12 @@ func VoteComment(c *fiber.Ctx) error {
 		})
 	}
 
-	// Get IP address
-	ip := c.IP()
+	// Check emoji length
+	if len(vote.Emoji) > 20 {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Emoji exceeds 20 characters limit",
+		})
+	}
 
 	// Check if the comment exists
 	if err := database.DB.First(&models.Comment{}, commentID).Error; err != nil {
@@ -211,11 +249,29 @@ func VoteComment(c *fiber.Ctx) error {
 	}
 
 	vote.CommentID = uint(commentID)
-	vote.IPAddress = ip
 
-	// Check if the vote already exists, and if it does, update it
+	// Get IP address
+	ip := c.IP()
+
+	// Determine if we're using UserID or IP
+	var query string
+	var args []interface{}
+	if vote.UserID != nil && *vote.UserID != 0 {
+		// User is logged in, use UserID
+		query = "comment_id = ? AND user_id = ?"
+		args = []interface{}{vote.CommentID, *vote.UserID}
+		vote.IPAddress = "" // Clear IP address for logged-in users
+	} else {
+		// Anonymous user, use IP
+		query = "comment_id = ? AND ip_address = ?"
+		args = []interface{}{vote.CommentID, ip}
+		vote.UserID = nil // Clear UserID for anonymous users
+		vote.IPAddress = ip
+	}
+
+	// Check if the vote already exists
 	var existingVote models.Vote
-	err = database.DB.Where("comment_id = ? AND ip_address = ?", vote.CommentID, ip).First(&existingVote).Error
+	err = database.DB.Where(query, args...).First(&existingVote).Error
 	if err == nil {
 		// Update the existing vote
 		existingVote.Emoji = vote.Emoji
@@ -224,6 +280,10 @@ func VoteComment(c *fiber.Ctx) error {
 				"error": "Failed to update vote",
 			})
 		}
+		return c.Status(fiber.StatusOK).JSON(fiber.Map{
+			"message": "Vote updated successfully",
+			"data":    existingVote,
+		})
 	} else if err == gorm.ErrRecordNotFound {
 		// Create a new vote
 		if err := database.DB.Create(&vote).Error; err != nil {
@@ -231,13 +291,60 @@ func VoteComment(c *fiber.Ctx) error {
 				"error": "Failed to create vote",
 			})
 		}
+		return c.Status(fiber.StatusCreated).JSON(fiber.Map{
+			"message": "Vote created successfully",
+			"data":    vote,
+		})
 	} else {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to process vote",
 		})
 	}
+}
 
-	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
-		"message": "Vote processed successfully",
+// DeleteComment deletes a comment
+func DeleteComment(c *fiber.Ctx) error {
+	// Get comment ID from URL parameter
+	commentIDStr := c.Params("commentId")
+	commentID, err := strconv.ParseUint(commentIDStr, 10, 32)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid comment ID",
+		})
+	}
+
+	// Find the comment
+	var comment models.Comment
+	if err := database.DB.First(&comment, commentID).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+				"error": "Comment not found",
+			})
+		}
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to find comment",
+		})
+	}
+
+	// Check if the user is authorized to delete the comment
+	// This is a placeholder. You should implement proper authorization logic.
+	// For example, check if the user is an admin or the comment owner.
+	isAuthorized := true // Replace with actual authorization logic
+
+	if !isAuthorized {
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+			"error": "You are not authorized to delete this comment",
+		})
+	}
+
+	// Soft delete the comment
+	if err := database.DB.Model(&comment).Update("deleted_at", time.Now()).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to delete comment",
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"message": "Comment deleted successfully",
 	})
 }
