@@ -45,7 +45,7 @@ func CreatePost(c *fiber.Ctx) error {
 	content := c.FormValue("content")
 	tagsJSON := c.FormValue("tags") // 해시태그는 JSON 형식의 문자열로 가정
 	tags := []string{}
-	// JSON 형식의 해시태그��� Go 슬라이스 변환
+	// JSON 형식의 해시태그 Go 슬라이스 변환
 	if tagsJSON != "" {
 		tags = strings.Split(tagsJSON, ",") // ["fdg", "hgfj", "dsfg", "gfhj"]	err = json.Unmarshal([]byte(tagsJSON), &tags)
 		if err != nil {
@@ -130,7 +130,7 @@ func AllPost(c *fiber.Ctx) error {
 
 	// Generate the base query
 	query := database.DB.Table("posts").
-		Select("posts.*, COUNT(DISTINCT comments.id) as comment_count").
+		Select("posts.*, COUNT(DISTINCT CASE WHEN comments.deleted_at IS NULL THEN comments.id END) as comment_count").
 		Joins("LEFT JOIN comments ON comments.post_id = posts.id").
 		Group("posts.id").
 		Preload("User").
