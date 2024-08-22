@@ -8,6 +8,7 @@ import (
 	"github.com/bloomingFlower/blog-backend/models"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/log"
+	"github.com/microcosm-cc/bluemonday"
 	"gorm.io/gorm"
 )
 
@@ -53,7 +54,11 @@ func CreateComment(c *fiber.Ctx) error {
 		})
 	}
 
-	// Check comment length
+	// Sanitize comment content
+	p := bluemonday.UGCPolicy()
+	comment.Content = p.Sanitize(comment.Content)
+
+	// Check comment length after sanitization
 	if len(comment.Content) > 3000 {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Comment content exceeds 3000 characters limit",
@@ -138,7 +143,11 @@ func CreateReply(c *fiber.Ctx) error {
 		})
 	}
 
-	// Check reply length
+	// Sanitize reply content
+	p := bluemonday.UGCPolicy()
+	reply.Content = p.Sanitize(reply.Content)
+
+	// Check reply length after sanitization
 	if len(reply.Content) > 3000 {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Reply content exceeds 3000 characters limit",
@@ -228,6 +237,10 @@ func VoteComment(c *fiber.Ctx) error {
 			"error": "Failed to parse request body",
 		})
 	}
+
+	// Sanitize emoji
+	p := bluemonday.UGCPolicy()
+	vote.Emoji = p.Sanitize(vote.Emoji)
 
 	// Check emoji length
 	if len(vote.Emoji) > 20 {
