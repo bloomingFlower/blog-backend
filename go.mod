@@ -4,10 +4,13 @@ go 1.21.2
 
 require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
+	github.com/fogleman/gg v1.3.0
 	github.com/gofiber/fiber/v2 v2.52.5
+	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0
 	github.com/gorilla/feeds v1.2.0
 	github.com/joho/godotenv v1.5.1
 	golang.org/x/crypto v0.24.0
+	golang.org/x/image v0.19.0
 	golang.org/x/oauth2 v0.16.0
 	gorm.io/driver/mysql v1.5.2
 	gorm.io/gorm v1.25.5

@@ -16,12 +16,17 @@ import (
 	"html"
 	"regexp"
 
+	"image/png"
+
 	"github.com/bloomingFlower/blog-backend/database"
 	"github.com/bloomingFlower/blog-backend/models"
 	"github.com/bloomingFlower/blog-backend/util"
+	"github.com/fogleman/gg"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/log"
+	"github.com/golang/freetype/truetype"
 	"github.com/gorilla/feeds"
+	"golang.org/x/image/font/gofont/goregular"
 )
 
 func CreatePost(c *fiber.Ctx) error {
@@ -589,4 +594,51 @@ func truncateString(s string, maxLength int) string {
 	runes := []rune(s)
 	truncated := string(runes[:maxLength-3]) + "..."
 	return truncated
+}
+
+// GenerateOGImage generates an Open Graph image for a post
+func GenerateOGImage(c *fiber.Ctx) error {
+	postID := c.Params("id")
+	id, err := strconv.Atoi(postID)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"message": "Invalid post ID",
+		})
+	}
+
+	var post models.Post
+	if err := database.DB.First(&post, id).Error; err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"message": "Post not found",
+		})
+	}
+
+	width := 1200
+	height := 630
+
+	dc := gg.NewContext(width, height)
+
+	dc.SetHexColor("#f3f4f6")
+	dc.Clear()
+
+	font, err := truetype.Parse(goregular.TTF)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"message": "Error loading font",
+		})
+	}
+
+	titleFontFace := truetype.NewFace(font, &truetype.Options{Size: 40})
+	dc.SetFontFace(titleFontFace)
+	dc.SetHexColor("#1f2937")
+	dc.DrawStringWrapped(post.Title, 50, 100, 0, 0, float64(width-100), 1.5, gg.AlignLeft)
+
+	contentFontFace := truetype.NewFace(font, &truetype.Options{Size: 30})
+	dc.SetFontFace(contentFontFace)
+	dc.SetHexColor("#4b5563")
+	summary := truncateString(cleanHTMLContent(post.Content), 200)
+	dc.DrawStringWrapped(summary, 50, 200, 0, 0, float64(width-100), 1.5, gg.AlignLeft)
+
+	c.Set("Content-Type", "image/png")
+	return png.Encode(c.Response().BodyWriter(), dc.Image())
 }

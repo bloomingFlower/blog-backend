@@ -74,6 +74,8 @@ func Setup(app *fiber.App) {
 	v1.Post("/upload-img", middleware.IsAuthenticate, controller.UploadImage)
 	v1.Get("/files/:id/:filename", middleware.IsAuthenticate, controller.ServeFile)
 
+	app.Get("/api/v1/post/:id/og-image", controller.GenerateOGImage)
+
 	// 소셜 로그인 관련 라우트
 	auth := v1.Group("/auth")
 	auth.Get("/google/login", controller.GoogleLogin)
