@@ -246,15 +246,31 @@ func UpdateSectionItem(c *fiber.Ctx) error {
 		})
 	}
 
-	if err := c.BodyParser(&sectionItem); err != nil {
+	// Parse request body
+	var updateData map[string]interface{}
+	if err := c.BodyParser(&updateData); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Failed to parse request body",
 		})
 	}
 
-	if err := database.DB.Save(&sectionItem).Error; err != nil {
+	// Remove created_at, updated_at, and id from updateData if present
+	delete(updateData, "created_at")
+	delete(updateData, "updated_at")
+	delete(updateData, "id")
+
+	// Update only the fields provided in the request
+	if err := database.DB.Model(&sectionItem).Omit("CreatedAt", "UpdatedAt").Updates(updateData).Error; err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Failed to update section item",
+			"error":   "Failed to update section item",
+			"message": err.Error(),
+		})
+	}
+
+	// Fetch the updated item
+	if err := database.DB.First(&sectionItem, sectionItem.ID).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to fetch updated section item",
 		})
 	}
 
