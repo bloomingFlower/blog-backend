@@ -1,6 +1,7 @@
 module github.com/bloomingFlower/blog-backend
 
 go 1.21.2
+toolchain go1.24.1
 
 require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
@@ -10,7 +11,7 @@ require (
 	github.com/gorilla/feeds v1.2.0
 	github.com/joho/godotenv v1.5.1
 	github.com/microcosm-cc/bluemonday v1.0.27
-	golang.org/x/crypto v0.24.0
+	golang.org/x/crypto v0.35.0
 	golang.org/x/image v0.19.0
 	golang.org/x/oauth2 v0.16.0
 	gorm.io/driver/mysql v1.5.2
@@ -38,8 +39,8 @@ require (
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasthttp v1.55.0 // indirect
 	github.com/valyala/tcplisten v1.0.0 // indirect
-	golang.org/x/net v0.26.0 // indirect
-	golang.org/x/sys v0.24.0 // indirect
+	golang.org/x/net v0.36.0 // indirect
+	golang.org/x/sys v0.30.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/protobuf v1.33.0 // indirect
 )
